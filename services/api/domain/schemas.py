@@ -140,3 +140,37 @@ class LoginRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type:   str = "bearer"
+
+
+# ── Scans (verification events) ────────────────────────────────────────────────
+
+class ScanResponse(BaseModel):
+    id:               str
+    medicine_name:    str
+    manufacturer:     str
+    batch_number:     str
+    expiry_date:      str
+    status:           ScanStatus
+    confidence_score: float
+    notes:            Optional[str]
+    scanned_at:       datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ScanTrendPoint(BaseModel):
+    month:       str
+    scans:       int
+    counterfeit: int
+
+
+class ScanStats(BaseModel):
+    total:            int
+    verified:         int
+    counterfeit:      int
+    unknown:          int
+    not_medicine:     int
+    counterfeit_rate: float           # % of real-medicine scans flagged counterfeit
+    avg_confidence:   float           # 0.0–1.0
+    trend:            list[ScanTrendPoint]

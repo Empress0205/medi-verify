@@ -21,7 +21,8 @@ engine → dashboard → ops) and front-loads value while back-loading risk.
 | 3 | Persistence + workflow | `/verify` writes a Scan; reports link scans; fix analytics trend; wire admin auth | ✅ done — 17/17 e2e checks pass (`services/api/tests/smoke_e2e.py`) |
 | 4 | Connect mobile | Flutter → one API; fix confidence display; wire report screen; real history | ✅ live-verified on emulator — app boots, real `POST /reports` → `201`, row persisted (Arusha/AfyaPharmacy). Confidence display, field name (`file`→`image`), scan_id link, faked-history removal all shipped. Report success screen now shows backend's real code (needs rebuild to see live). |
 | 5 | Real engine | Port `legacy/backend1` pipeline into `inprocess.py`; `skiprows=2`; CSV → `medicines` table; merge OCR/LLM deps; flip config | a real photo yields a real result |
-| 6 | Dashboard frontend | Build the missing Vite/React `src`; consume `/analytics` + `/reports`; admin login | reviewers triage reports in a browser |
+| 6 | Dashboard frontend | Build the missing Vite/React `src`; consume `/analytics` + `/reports`; admin login | ✅ done — green-brand SaaS app (sidebar shell). Views: Overview (KPIs, status donut, trend lines), Reports (filter/sort/paginate + detail drawer + CSV export), Scans (surfaces verification events via new `/scans` endpoints), Regions (bubble map + hotspots). Verified live via headless Chrome. |
+| 6b | Backend: scans API | Expose the persisted scans for the dashboard | ✅ done — `GET /scans` (list, admin) + `GET /scans/stats` (detection aggregates + trend). |
 | 7 | Harden & ops | docker-compose (api+ollama+db), Alembic, tests, CI, rate limiting, CORS, secrets, drop ngrok | reproducible deploy, green CI |
 
 ## Fixes folded into the relevant phase
@@ -32,11 +33,16 @@ engine → dashboard → ops) and front-loads value while back-loading risk.
 - P7: remove `"*"` when `allow_credentials=True`; rate limiting; secrets management.
 
 ## Current position
-Phases 0–4 done. **The MVP runs live end-to-end**: Flutter app on the Android
-emulator → real backend (`10.0.2.2:8000`) → SQLite. Verified live: onboarding →
-home (stats 0/0/0, faked data gone) → report submit → `POST /reports 201` →
-persisted with the exact typed data. **Next: Phase 5** (swap in the real OCR/LLM
-engine) or Phase 6 (dashboard frontend).
+Phases 0–4 and **6 done**. The full stack runs live: Flutter app (emulator) →
+FastAPI backend → SQLite → React admin dashboard, all on the mock verification
+engine. Verified live: mobile report submit → `POST /reports 201` → persisted →
+appears in the dashboard with working triage workflow. **Next: Phase 5** (real
+OCR/LLM engine) or Phase 7 (harden & ops).
+
+Dashboard: `apps/dashboard` (Vite/React) — green-brand SaaS console with
+Overview / Reports / Scans / Regions. `npm install && npm run dev`, then log in
+with `admin` / `admin123`. Reads `VITE_API_BASE_URL` (defaults
+`http://localhost:8000`).
 
 Emulator notes: build needs Windows Developer Mode (symlinks). `image_picker
 0.8.7` won't open camera/gallery on this Android 16 emulator, so the scan path
