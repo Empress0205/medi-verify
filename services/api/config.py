@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = ""
 
+    # TMDA register: seed on first boot if empty, then refresh every N hours
+    # (set to 0 to disable the in-process periodic refresh, e.g. if using a cron).
+    REGISTER_SYNC_HOURS: int = 24
+
     # Default admin — seeded on startup if no admin exists (change in prod!)
     ADMIN_USERNAME: str = "admin"
     ADMIN_EMAIL: str = "admin@mediguard.local"
