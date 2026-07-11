@@ -16,6 +16,12 @@ class ScanRecord {
   final String? notes;
   final double confidenceScore; // canonical 0.0–1.0 (format to % at display)
 
+  // ── TMDA register match evidence (present on registered results) ──
+  final String? regNo;
+  final String? registrationStatus;
+  final String? physicalDescription;
+  final String? activeIngredient;
+
   ScanRecord({
     required this.id,
     this.serverScanId,
@@ -28,6 +34,10 @@ class ScanRecord {
     this.imagePath,
     this.notes,
     required this.confidenceScore,
+    this.regNo,
+    this.registrationStatus,
+    this.physicalDescription,
+    this.activeIngredient,
   });
 
   Map<String, dynamic> toJson() => {
@@ -42,6 +52,10 @@ class ScanRecord {
         'imagePath': imagePath,
         'notes': notes,
         'confidenceScore': confidenceScore,
+        'regNo': regNo,
+        'registrationStatus': registrationStatus,
+        'physicalDescription': physicalDescription,
+        'activeIngredient': activeIngredient,
       };
 
   factory ScanRecord.fromJson(Map<String, dynamic> json) => ScanRecord(
@@ -56,6 +70,10 @@ class ScanRecord {
         imagePath: json['imagePath'],
         notes: json['notes'],
         confidenceScore: (json['confidenceScore'] as num).toDouble(),
+        regNo: json['regNo'],
+        registrationStatus: json['registrationStatus'],
+        physicalDescription: json['physicalDescription'],
+        activeIngredient: json['activeIngredient'],
       );
 
   String get statusLabel {

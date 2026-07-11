@@ -22,7 +22,11 @@ async def verify(
     image: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
 ):
-    if not image.content_type or not image.content_type.startswith("image/"):
+    # Accept image/* and the generic octet-stream / missing type that some
+    # mobile pickers send; reject only clearly non-image types. The vision
+    # engine is the real gate (it flags non-medicine images as not_medicine).
+    ct = (image.content_type or "").lower()
+    if ct and not (ct.startswith("image/") or ct == "application/octet-stream"):
         raise HTTPException(status_code=400, detail="File must be an image (jpeg, png, webp).")
 
     # Guard against absurdly large uploads (10 MB)

@@ -12,8 +12,7 @@ dependencies:
   cupertino_icons: ^1.0.6
   google_fonts: ^8.0.2
   fl_chart: ^0.66.0
-  image_picker: ^0.8.7   # updated to stable recent version
-  mobile_scanner: ^3.5.6
+  image_picker: ^1.1.2   # modern Android photo picker (0.8 didn't open on new Android)
   shared_preferences: ^2.2.2
   intl: ^0.18.1
   lottie: ^3.0.0
@@ -23,7 +22,7 @@ dependencies:
   provider: ^6.1.1
   uuid: ^4.3.3
   permission_handler: ^11.3.0
-  camera: ^0.10.0+1       # <-- ADD THIS
+  camera: ^0.11.0+2
   http: ^1.6.0
 
 dev_dependencies:

@@ -69,6 +69,12 @@ class MedicineInfo {
   final String? dosage;
   final List<String>? warnings;
 
+  // ── TMDA register match evidence ──
+  final String? regNo;
+  final String? registrationStatus;
+  final String? registrationExpiry;
+  final String? physicalDescription;
+
   MedicineInfo({
     required this.name,
     required this.manufacturer,
@@ -80,6 +86,10 @@ class MedicineInfo {
     this.activeIngredient,
     this.dosage,
     this.warnings,
+    this.regNo,
+    this.registrationStatus,
+    this.registrationExpiry,
+    this.physicalDescription,
   });
 
   factory MedicineInfo.fromJson(Map<String, dynamic> json) {
@@ -96,6 +106,10 @@ class MedicineInfo {
       warnings: json['warnings'] != null
           ? List<String>.from(json['warnings'])
           : null,
+      regNo: json['reg_no'] ?? json['regNo'],
+      registrationStatus: json['registration_status'],
+      registrationExpiry: json['registration_expiry'],
+      physicalDescription: json['physical_description'],
     );
   }
 }

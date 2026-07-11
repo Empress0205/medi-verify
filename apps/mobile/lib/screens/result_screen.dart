@@ -173,6 +173,16 @@ class ResultScreen extends StatelessWidget {
                   child: _DetailsCard(record: record),
                 ),
 
+                // ── What the genuine product should look like ─────────────
+                if (record.physicalDescription != null &&
+                    record.physicalDescription!.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: _LooksCard(text: record.physicalDescription!),
+                  ),
+                ],
+
                 // ── Notes if any ─────────────────────────────────────────
                 if (record.notes != null) ...[
                   const SizedBox(height: 16),
@@ -286,6 +296,24 @@ class _DetailsCard extends StatelessWidget {
             label: 'Manufacturer',
             value: record.manufacturer,
           ),
+          if (record.regNo != null)
+            _DetailRow(
+              icon: Icons.verified_user_rounded,
+              label: 'TMDA Reg. No.',
+              value: record.regNo!,
+            ),
+          if (record.registrationStatus != null)
+            _DetailRow(
+              icon: Icons.fact_check_rounded,
+              label: 'Registration',
+              value: record.registrationStatus!,
+            ),
+          if (record.activeIngredient != null)
+            _DetailRow(
+              icon: Icons.science_rounded,
+              label: 'Active Ingredient',
+              value: record.activeIngredient!,
+            ),
           _DetailRow(
             icon: Icons.numbers_rounded,
             label: 'Batch Number',
@@ -373,29 +401,89 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-class _NotesCard extends StatelessWidget {
-  final String notes;
-  const _NotesCard({required this.notes});
+// Shows the register's physical description of the genuine product — an
+// anti-counterfeit aid so the user can compare against what's in their hand.
+class _LooksCard extends StatelessWidget {
+  final String text;
+  const _LooksCard({required this.text});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.danger.withOpacity(0.06),
+        color: AppTheme.success.withOpacity(0.06),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.danger.withOpacity(0.2)),
+        border: Border.all(color: AppTheme.success.withOpacity(0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.visibility_rounded,
+                  color: AppTheme.success, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'How the genuine product looks',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: AppTheme.success,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            text,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontSize: 13,
+                  height: 1.5,
+                  color: AppTheme.textPrimary,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Compare this with your medicine. If it looks different, report it.',
+            style: TextStyle(
+              fontSize: 11.5,
+              color: AppTheme.textSecondary,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NotesCard extends StatelessWidget {
+  final String notes;
+  const _NotesCard({required this.notes});
+
+  @override
+  Widget build(BuildContext context) {
+    // Neutral styling — this note carries the backend message for ANY outcome
+    // (registered / not found), so it must not look like a red warning.
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.textSecondary.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.divider),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.warning_amber_rounded, color: AppTheme.danger, size: 20),
+          const Icon(Icons.info_outline_rounded,
+              color: AppTheme.textSecondary, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               notes,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.danger,
+                    color: AppTheme.textSecondary,
                     fontSize: 13,
                     height: 1.5,
                   ),

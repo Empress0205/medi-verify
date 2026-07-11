@@ -18,8 +18,9 @@ List<CameraDescription> cameras = [];
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize cameras
-  cameras = await availableCameras();
+  // NOTE: do NOT enumerate cameras here — eager CameraX init at startup blanks
+  // the first frame on some devices/emulators. The scan screen loads cameras
+  // lazily only when "Live Scan" is chosen.
 
   // Lock portrait orientation
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);

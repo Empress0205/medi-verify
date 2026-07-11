@@ -86,6 +86,10 @@ class VerificationService {
       scannedAt: DateTime.now(),
       confidenceScore: response.confidenceScore,
       notes: _buildNotes(response),
+      regNo: info?.regNo,
+      registrationStatus: info?.registrationStatus,
+      physicalDescription: info?.physicalDescription,
+      activeIngredient: info?.activeIngredient,
     );
   }
 

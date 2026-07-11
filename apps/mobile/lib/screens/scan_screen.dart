@@ -60,7 +60,14 @@ class _ScanScreenState extends State<ScanScreen>
   //  MODE 1 — Live Camera
   // ────────────────────────────────────────────────────────────────────────────
   Future<void> _startLiveCamera() async {
-    if (widget.cameras.isEmpty) {
+    // Load cameras lazily (not at app startup) to avoid a blank first frame.
+    var cams = widget.cameras;
+    if (cams.isEmpty) {
+      try {
+        cams = await availableCameras();
+      } catch (_) {}
+    }
+    if (cams.isEmpty) {
       _showError('No camera found on this device.');
       return;
     }
@@ -70,7 +77,7 @@ class _ScanScreenState extends State<ScanScreen>
     });
     try {
       _cameraController = CameraController(
-        widget.cameras[0],
+        cams[0],
         ResolutionPreset.high,
         enableAudio: false,
       );
