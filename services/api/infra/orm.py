@@ -71,25 +71,29 @@ class Medicine(Base):
     # TMDA's own product id — stable, used as the PK for idempotent upserts
     id:               Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
 
-    certificate_no:   Mapped[str] = mapped_column(String(80), index=True)
+    certificate_no:   Mapped[str] = mapped_column(String(120), index=True)
     # normalized (uppercase, alphanumeric only) for robust matching against OCR
-    cert_no_norm:     Mapped[str] = mapped_column(String(80), index=True)
+    cert_no_norm:     Mapped[str] = mapped_column(String(120), index=True)
 
-    brand_name:       Mapped[str | None] = mapped_column(String(255), index=True)
-    generic_name:     Mapped[str | None] = mapped_column(String(255))
+    # Free-text register fields use Text (unbounded). TMDA values are unpredictable
+    # in length — e.g. combination-vaccine generic names / active ingredients run to
+    # hundreds of chars — and Postgres (unlike SQLite) enforces VARCHAR(n) limits,
+    # so a bounded column silently overflowed and aborted the whole seed batch.
+    brand_name:       Mapped[str | None] = mapped_column(Text, index=True)
+    generic_name:     Mapped[str | None] = mapped_column(Text)
     active_ingredient: Mapped[str | None] = mapped_column(Text, nullable=True)
-    atc_description:  Mapped[str | None] = mapped_column(String(255), nullable=True)
+    atc_description:  Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    manufacturer:         Mapped[str | None] = mapped_column(String(255))
-    manufacturer_country: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    registrant:           Mapped[str | None] = mapped_column(String(255), nullable=True)
+    manufacturer:         Mapped[str | None] = mapped_column(Text)
+    manufacturer_country: Mapped[str | None] = mapped_column(Text, nullable=True)
+    registrant:           Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    dosage_form:      Mapped[str | None] = mapped_column(String(120), nullable=True)
-    strength:         Mapped[str | None] = mapped_column(String(120), nullable=True)
+    dosage_form:      Mapped[str | None] = mapped_column(Text, nullable=True)
+    strength:         Mapped[str | None] = mapped_column(Text, nullable=True)
     physical_description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # The registration's own validity — a match to a lapsed registration is not "green"
-    registration_status: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    registration_status: Mapped[str | None] = mapped_column(Text, nullable=True)
     cert_issue_date:  Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     cert_expiry_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 

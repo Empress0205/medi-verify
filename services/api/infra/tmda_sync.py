@@ -12,9 +12,8 @@ import warnings
 from datetime import datetime
 
 import httpx
-from sqlalchemy import delete
 
-from infra.db import AsyncSessionLocal, init_db
+from infra.db import AsyncSessionLocal, engine, init_db
 from infra.orm import Medicine, RegisterSync
 from infra.normalize import normalize_cert
 
@@ -111,8 +110,15 @@ async def sync_register(verbose: bool = True) -> dict:
             continue
     meds = [_to_medicine(r) for r in by_id.values()]
 
+    # Full replace by dropping & recreating the table (not DELETE) so the schema
+    # is re-derived from the current model on every sync. This self-heals an
+    # existing DB whose `medicines` columns were created with an older, narrower
+    # type — create_all alone never ALTERs an already-present table.
+    async with engine.begin() as conn:
+        await conn.run_sync(Medicine.__table__.drop, checkfirst=True)
+        await conn.run_sync(Medicine.__table__.create)
+
     async with AsyncSessionLocal() as db:
-        await db.execute(delete(Medicine))
         db.add_all(meds)
         db.add(RegisterSync(record_count=len(meds), source="tmda_api", ok=True))
         await db.commit()
