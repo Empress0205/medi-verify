@@ -20,6 +20,24 @@ class MedicineInfo(BaseModel):
     dosage:            Optional[str] = None
     warnings:          Optional[list[str]] = None
 
+    # ── TMDA register match evidence (populated when a record is matched) ──
+    reg_no:               Optional[str] = None
+    registration_status:  Optional[str] = None   # e.g. "Registered/Compliant"
+    registration_expiry:  Optional[str] = None   # when the registration itself lapses
+    physical_description: Optional[str] = None   # what the genuine product looks like
+
+
+class ExtractedFields(BaseModel):
+    """Raw fields read off the packaging by the vision engine (pre-matching)."""
+    is_medicine:   bool = True     # engine's judgment: is this medicine packaging at all?
+    medicine_name: Optional[str] = None
+    strength:      Optional[str] = None
+    reg_no:        Optional[str] = None
+    batch_number:  Optional[str] = None
+    mfg_date:      Optional[str] = None
+    expiry_date:   Optional[str] = None
+    manufacturer:  Optional[str] = None
+
 
 class VerifyResponse(BaseModel):
     success:          bool

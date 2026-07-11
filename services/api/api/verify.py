@@ -10,7 +10,7 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from domain.schemas import VerifyResponse
-from infra.engine.mock import verify_medicine_image
+from services.verification_service import verify_image
 from infra.db import get_db
 from infra.orm import Scan
 
@@ -31,10 +31,7 @@ async def verify(
     if len(contents) > MAX_SIZE:
         raise HTTPException(status_code=413, detail="Image too large. Max 10 MB.")
 
-    # Reset so verification engine can read it again
-    await image.seek(0)
-
-    result = await verify_medicine_image(image)
+    result = await verify_image(contents, image.filename or "image.jpg", db)
 
     # Persist the scan. medicine_info is None for not_medicine results.
     info = result.medicine_info

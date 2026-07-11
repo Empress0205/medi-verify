@@ -1,136 +1,44 @@
 """
-Medicine verification engine.
+Mock engine — a deterministic field extractor for dev/demo with no API key.
 
-Right now it runs a mock AI that returns plausible results so you can test
-the full Flutter → backend → dashboard flow without a real model.
-
-To plug in a real AI model:
-  1. Set USE_REAL_AI=true in your .env
-  2. Set AI_ENDPOINT and AI_API_KEY
-  3. The _call_real_ai() function sends the image as multipart and expects
-     the same VerifyResponse JSON shape back.
+Same image always yields the same fields. Most samples are real TMDA-registered
+products (so the matcher returns "registered"); a couple are invented (so it
+returns "not_found"); ~8% simulate a non-medicine photo.
 """
-
-import random
+from __future__ import annotations
 import hashlib
-from datetime import datetime, timedelta
-from fastapi import UploadFile
-import httpx
+import random
 
-from config import get_settings
-from domain.schemas import VerifyResponse, MedicineInfo
+from domain.schemas import ExtractedFields
 
-settings = get_settings()
-
-# Seed database of known medicines for the mock engine
-MEDICINE_DB = [
-    {"name": "Paracetamol 500mg",    "manufacturer": "Dawa Ltd",        "ingredient": "Paracetamol",  "dosage": "500mg"},
-    {"name": "Augmentin 625mg",      "manufacturer": "GSK",             "ingredient": "Amoxicillin/Clavulanate", "dosage": "625mg"},
-    {"name": "Amoxicillin 250mg",    "manufacturer": "Shelys",          "ingredient": "Amoxicillin",  "dosage": "250mg"},
-    {"name": "Amoxicillin 500mg",    "manufacturer": "GSK",             "ingredient": "Amoxicillin",  "dosage": "500mg"},
-    {"name": "Metformin 500mg",      "manufacturer": "Universal Corp",  "ingredient": "Metformin HCl","dosage": "500mg"},
-    {"name": "Coartem 80/480mg",     "manufacturer": "Novartis",        "ingredient": "Artemether/Lumefantrine", "dosage": "80/480mg"},
-    {"name": "Metronidazole 200mg",  "manufacturer": "Dawa Ltd",        "ingredient": "Metronidazole","dosage": "200mg"},
-    {"name": "Omeprazole 20mg",      "manufacturer": "Shelys",          "ingredient": "Omeprazole",   "dosage": "20mg"},
-    {"name": "Doxycycline 100mg",    "manufacturer": "Universal Corp",  "ingredient": "Doxycycline",  "dosage": "100mg"},
-    {"name": "Ibuprofen 400mg",      "manufacturer": "Dawa Ltd",        "ingredient": "Ibuprofen",    "dosage": "400mg"},
-    {"name": "Atorvastatin 10mg",    "manufacturer": "Cipla",           "ingredient": "Atorvastatin", "dosage": "10mg"},
-    {"name": "Ciprofloxacin 500mg",  "manufacturer": "Shelys",          "ingredient": "Ciprofloxacin","dosage": "500mg"},
+# Mostly real, register-listed names so the matcher can find them.
+_SAMPLES = [
+    {"medicine_name": "Amoxicillin", "strength": "500mg", "manufacturer": "Shelys Pharmaceuticals"},
+    {"medicine_name": "Paracetamol", "strength": "500mg", "manufacturer": "Dawa Limited"},
+    {"medicine_name": "Augmentin", "strength": "625mg", "manufacturer": "GSK"},
+    {"medicine_name": "Metformin", "strength": "500mg", "manufacturer": "Universal Corporation"},
+    {"medicine_name": "Doxyzen", "strength": "100mg", "manufacturer": "Zenufa Laboratories Ltd"},
+    # Not on the register — should resolve to not_found:
+    {"medicine_name": "Zynofil Forte", "strength": "250mg", "manufacturer": "Acme Pharma"},
 ]
 
 
-def _image_hash_seed(image_bytes: bytes) -> int:
-    """Derive a deterministic seed from the image so same image → same result."""
-    return int(hashlib.md5(image_bytes[:2048]).hexdigest(), 16) % (2**31)
+class MockEngine:
+    async def extract(self, image_bytes: bytes, filename: str) -> ExtractedFields:
+        seed = int(hashlib.md5(image_bytes[:2048]).hexdigest(), 16)
+        rng = random.Random(seed)
 
+        if rng.random() < 0.08:
+            return ExtractedFields(is_medicine=False)
 
-def _random_batch() -> str:
-    y = random.randint(2023, 2024)
-    n = random.randint(100, 999)
-    return f"BN-{y}-0{n}"
-
-
-def _random_expiry() -> str:
-    months_ahead = random.randint(6, 36)
-    d = datetime.utcnow() + timedelta(days=months_ahead * 30)
-    return d.strftime("%Y-%m")
-
-
-async def _call_real_ai(image_bytes: bytes, filename: str) -> VerifyResponse:
-    """Send image to external AI endpoint and return its response."""
-    async with httpx.AsyncClient(timeout=30) as client:
-        resp = await client.post(
-            settings.AI_ENDPOINT,
-            headers={"Authorization": f"Bearer {settings.AI_API_KEY}"},
-            files={"image": (filename, image_bytes, "image/jpeg")},
+        s = rng.choice(_SAMPLES)
+        return ExtractedFields(
+            is_medicine=True,
+            medicine_name=s["medicine_name"],
+            strength=s["strength"],
+            manufacturer=s["manufacturer"],
+            batch_number=f"BN-{rng.randint(10000, 99999)}",
+            mfg_date="01/2024",
+            expiry_date="01/2027",
+            reg_no=None,
         )
-        resp.raise_for_status()
-        return VerifyResponse(**resp.json())
-
-
-async def _mock_ai(image_bytes: bytes) -> VerifyResponse:
-    """
-    Deterministic mock: same image always gives the same result.
-    Simulates ~70% registered, ~20% not found on the register, ~10% non-medicine.
-    """
-    seed = _image_hash_seed(image_bytes)
-    rng = random.Random(seed)
-
-    roll = rng.random()
-
-    # ~10% chance — not a medicine image
-    if roll < 0.10:
-        return VerifyResponse(
-            success=True,
-            status="not_medicine",
-            confidence_score=round(rng.uniform(0.20, 0.45), 2),
-            message="No medicine packaging detected in the image.",
-        )
-
-    # Pick a random medicine from the DB
-    med = rng.choice(MEDICINE_DB)
-    confidence = round(rng.uniform(0.72, 0.99), 2)
-    batch = _random_batch()
-    expiry = _random_expiry()
-    scan_time = datetime.utcnow().isoformat() + "Z"
-
-    info = MedicineInfo(
-        name=med["name"],
-        manufacturer=med["manufacturer"],
-        batch_number=batch,
-        expiry_date=expiry,
-        scan_time=scan_time,
-        active_ingredient=med["ingredient"],
-        dosage=med["dosage"],
-        warnings=["Store below 30°C", "Keep out of reach of children"] if rng.random() > 0.6 else None,
-    )
-
-    # ~20% not found on the register (of medicine images)
-    if roll < 0.30:
-        return VerifyResponse(
-            success=True,
-            status="not_found",
-            confidence_score=confidence,
-            medicine_info=info,
-            message="No matching product found on the TMDA register. This does not "
-                    "prove the medicine is fake — please be cautious and consider reporting it.",
-        )
-
-    # 70% registered
-    return VerifyResponse(
-        success=True,
-        status="registered",
-        confidence_score=confidence,
-        medicine_info=info,
-        message="This product matches a registered TMDA record.",
-    )
-
-
-async def verify_medicine_image(file: UploadFile) -> VerifyResponse:
-    """Entry point called by the router."""
-    image_bytes = await file.read()
-
-    if settings.USE_REAL_AI and settings.AI_ENDPOINT:
-        return await _call_real_ai(image_bytes, file.filename or "image.jpg")
-    else:
-        return await _mock_ai(image_bytes)

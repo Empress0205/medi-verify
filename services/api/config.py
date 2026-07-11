@@ -24,10 +24,16 @@ class Settings(BaseSettings):
         "*",                       # Remove in production, list exact origins
     ]
 
-    # Image verification — set to True to use a real AI model endpoint
-    USE_REAL_AI: bool = False
-    AI_ENDPOINT: str = ""
-    AI_API_KEY: str = ""
+    # ── Verification engine ─────────────────────────────────────────────────
+    # Which engine reads the packaging photo:
+    #   "mock"   -> deterministic fake (default; no key needed)
+    #   "gemini" -> Google Gemini vision (free tier)
+    #   "groq"   -> Groq vision (free tier, fallback)
+    ENGINE: str = "mock"
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-flash-latest"   # confirm exact id when wiring the adapter
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = ""
 
     # Default admin — seeded on startup if no admin exists (change in prod!)
     ADMIN_USERNAME: str = "admin"
@@ -37,6 +43,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"   # tolerate unrelated env vars without crashing
 
 
 @lru_cache

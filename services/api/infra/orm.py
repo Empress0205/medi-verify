@@ -64,6 +64,50 @@ class Report(Base):
     admin_notes:  Mapped[str | None]      = mapped_column(Text, nullable=True)
 
 
+# ── Medicine (a product on the TMDA register — synced from the public API) ─────
+class Medicine(Base):
+    __tablename__ = "medicines"
+
+    # TMDA's own product id — stable, used as the PK for idempotent upserts
+    id:               Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
+
+    certificate_no:   Mapped[str] = mapped_column(String(80), index=True)
+    # normalized (uppercase, alphanumeric only) for robust matching against OCR
+    cert_no_norm:     Mapped[str] = mapped_column(String(80), index=True)
+
+    brand_name:       Mapped[str | None] = mapped_column(String(255), index=True)
+    generic_name:     Mapped[str | None] = mapped_column(String(255))
+    active_ingredient: Mapped[str | None] = mapped_column(Text, nullable=True)
+    atc_description:  Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    manufacturer:         Mapped[str | None] = mapped_column(String(255))
+    manufacturer_country: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    registrant:           Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    dosage_form:      Mapped[str | None] = mapped_column(String(120), nullable=True)
+    strength:         Mapped[str | None] = mapped_column(String(120), nullable=True)
+    physical_description: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # The registration's own validity — a match to a lapsed registration is not "green"
+    registration_status: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    cert_issue_date:  Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    cert_expiry_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    synced_at:        Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+# ── Register sync bookkeeping (for the "last synced" dashboard indicator) ──────
+class RegisterSync(Base):
+    __tablename__ = "register_sync"
+
+    id:           Mapped[str] = mapped_column(String, primary_key=True, default=_new_uuid)
+    synced_at:    Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    record_count: Mapped[int] = mapped_column(default=0)
+    source:       Mapped[str] = mapped_column(String(40), default="tmda_api")  # tmda_api | csv
+    ok:           Mapped[bool] = mapped_column(default=True)
+    note:         Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
 # ── Admin user ─────────────────────────────────────────────────────────────────
 class AdminUser(Base):
     __tablename__ = "admin_users"
