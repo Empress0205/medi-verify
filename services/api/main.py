@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 
 from config import get_settings
 from infra.db import init_db, AsyncSessionLocal
-from infra.orm import Medicine
+from infra.orm import Medicine, RegisterSync
 from infra.tmda_sync import sync_register
 from api.verify import router as verify_router
 from api.reports import router as reports_router
@@ -83,3 +83,21 @@ async def root():
 @app.get("/health", tags=["Health"])
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/register/status", tags=["Health"])
+async def register_status():
+    """How many products are in the local register and how the last sync went.
+    Public so the dashboard can show a "register last synced" indicator."""
+    async with AsyncSessionLocal() as db:
+        count = (await db.execute(select(func.count()).select_from(Medicine))).scalar() or 0
+        last = (await db.execute(
+            select(RegisterSync).order_by(RegisterSync.synced_at.desc()).limit(1)
+        )).scalars().first()
+    return {
+        "medicines": count,
+        "last_sync": last.synced_at.isoformat() if last else None,
+        "last_sync_ok": last.ok if last else None,
+        "records": last.record_count if last else None,
+        "note": last.note if last else None,
+    }
