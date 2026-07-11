@@ -28,13 +28,13 @@ class GradientHeader extends StatelessWidget {
 // ─── Stats Card ───────────────────────────────────────────────────────────────
 class StatsCard extends StatelessWidget {
   final int scans;
-  final int verified;
-  final int reported;
+  final int registered;
+  final int notFound;
   const StatsCard({
     super.key,
     required this.scans,
-    required this.verified,
-    required this.reported,
+    required this.registered,
+    required this.notFound,
   });
 
   @override
@@ -62,9 +62,9 @@ class StatsCard extends StatelessWidget {
             children: [
               _StatItem(value: scans, label: 'Scans', color: AppTheme.primary),
               _Divider(),
-              _StatItem(value: verified, label: 'Verified', color: AppTheme.primary),
+              _StatItem(value: registered, label: 'Registered', color: AppTheme.primary),
               _Divider(),
-              _StatItem(value: reported, label: 'Reported', color: AppTheme.danger),
+              _StatItem(value: notFound, label: 'Not found', color: AppTheme.warning),
             ],
           ),
         ],
@@ -205,17 +205,17 @@ class StatusBadge extends StatelessWidget {
     String label;
 
     switch (status) {
-      case VerificationStatus.verified:
+      case VerificationStatus.registered:
         bg = AppTheme.success.withOpacity(0.12);
         text = AppTheme.success;
         icon = Icons.verified_rounded;
-        label = 'Verified';
+        label = 'Registered';
         break;
-      case VerificationStatus.counterfeit:
-        bg = AppTheme.danger.withOpacity(0.12);
-        text = AppTheme.danger;
-        icon = Icons.dangerous_rounded;
-        label = 'Counterfeit';
+      case VerificationStatus.notFound:
+        bg = AppTheme.warning.withOpacity(0.12);
+        text = AppTheme.warning;
+        icon = Icons.search_off_rounded;
+        label = 'Not on register';
         break;
       case VerificationStatus.unknown:
         bg = AppTheme.warning.withOpacity(0.12);
@@ -335,13 +335,13 @@ class ScanHistoryTile extends StatelessWidget {
 
   Color _statusColor(VerificationStatus s) {
     switch (s) {
-      case VerificationStatus.verified:
+      case VerificationStatus.registered:
         return AppTheme.success;
-      case VerificationStatus.counterfeit:
-        return AppTheme.danger;
-      case VerificationStatus.unknown:
+      case VerificationStatus.notFound:
         return AppTheme.warning;
-        case VerificationStatus.notMedicine:
+      case VerificationStatus.unknown:
+        return AppTheme.textSecondary;
+      case VerificationStatus.notMedicine:
         return AppTheme.info;
     }
   }

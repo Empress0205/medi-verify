@@ -13,10 +13,10 @@ const NAV = [
   { id: 'regions', label: 'Regions', ic: '📍' },
 ];
 const TITLES = {
-  overview: ['Overview', 'Counterfeit-medicine activity at a glance'],
-  reports: ['Reports', 'Triage public counterfeit reports'],
-  scans: ['Scans', 'Verification events from the mobile app'],
-  regions: ['Regions', 'Where counterfeits are being reported'],
+  overview: ['Overview', 'Registration checks and reports at a glance'],
+  reports: ['Reports', 'Triage public suspicious-medicine reports'],
+  scans: ['Scans', 'TMDA register checks from the mobile app'],
+  regions: ['Regions', 'Where suspicious medicines are being reported'],
 };
 
 export default function App() {

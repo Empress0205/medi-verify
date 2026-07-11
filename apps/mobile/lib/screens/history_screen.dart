@@ -17,7 +17,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   String _searchQuery = '';
   final _searchCtrl = TextEditingController();
 
-  final _filters = ['All', 'Verified', 'Counterfeit', 'Unknown'];
+  final _filters = ['All', 'Registered', 'Not found', 'Unknown'];
 
   @override
   Widget build(BuildContext context) {
@@ -196,8 +196,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     var list = records;
     if (_filter != 'All') {
       final statusMap = {
-        'Verified': VerificationStatus.verified,
-        'Counterfeit': VerificationStatus.counterfeit,
+        'Registered': VerificationStatus.registered,
+        'Not found': VerificationStatus.notFound,
         'Unknown': VerificationStatus.unknown,
       };
       list = list.where((r) => r.status == statusMap[_filter]).toList();
@@ -217,8 +217,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
   int _countForFilter(List<ScanRecord> records, String filter) {
     if (filter == 'All') return records.length;
     final statusMap = {
-      'Verified': VerificationStatus.verified,
-      'Counterfeit': VerificationStatus.counterfeit,
+      'Registered': VerificationStatus.registered,
+      'Not found': VerificationStatus.notFound,
       'Unknown': VerificationStatus.unknown,
     };
     return records.where((r) => r.status == statusMap[filter]).length;

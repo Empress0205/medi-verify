@@ -123,7 +123,7 @@ class _ReportScreenState extends State<ReportScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Help protect others by reporting counterfeit medicines.',
+                        'Help protect others by reporting medicines that are not on the register or look suspicious.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: Colors.white.withOpacity(0.85),
                               fontSize: 13,

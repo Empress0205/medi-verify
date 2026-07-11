@@ -29,13 +29,13 @@ async def scan_stats(
     def count(s):
         return sum(1 for x in scans if x.status == s)
 
-    verified = count(ScanStatus.verified)
-    counterfeit = count(ScanStatus.counterfeit)
+    registered = count(ScanStatus.registered)
+    not_found = count(ScanStatus.not_found)
     unknown = count(ScanStatus.unknown)
     not_medicine = count(ScanStatus.not_medicine)
 
-    medicine_scans = verified + counterfeit  # scans that resolved to a real medicine
-    counterfeit_rate = round((counterfeit / medicine_scans * 100) if medicine_scans else 0, 1)
+    medicine_scans = registered + not_found  # scans that resolved to a real medicine
+    not_found_rate = round((not_found / medicine_scans * 100) if medicine_scans else 0, 1)
     avg_confidence = round(sum(s.confidence_score for s in scans) / total if total else 0, 3)
 
     # 6-month trend keyed by calendar year-month
@@ -47,22 +47,22 @@ async def scan_stats(
         key = f"{yy:04d}-{mm + 1:02d}"
         order.append(key)
         labels[key] = date(yy, mm + 1, 1).strftime("%b")
-        buckets[key] = {"scans": 0, "counterfeit": 0}
+        buckets[key] = {"scans": 0, "not_found": 0}
     for s in scans:
         key = s.scanned_at.strftime("%Y-%m")
         if key in buckets:
             buckets[key]["scans"] += 1
-            if s.status == ScanStatus.counterfeit:
-                buckets[key]["counterfeit"] += 1
+            if s.status == ScanStatus.not_found:
+                buckets[key]["not_found"] += 1
 
     trend = [
-        ScanTrendPoint(month=labels[k], scans=buckets[k]["scans"], counterfeit=buckets[k]["counterfeit"])
+        ScanTrendPoint(month=labels[k], scans=buckets[k]["scans"], not_found=buckets[k]["not_found"])
         for k in order
     ]
 
     return ScanStats(
-        total=total, verified=verified, counterfeit=counterfeit, unknown=unknown,
-        not_medicine=not_medicine, counterfeit_rate=counterfeit_rate,
+        total=total, registered=registered, not_found=not_found, unknown=unknown,
+        not_medicine=not_medicine, not_found_rate=not_found_rate,
         avg_confidence=avg_confidence, trend=trend,
     )
 

@@ -1,5 +1,7 @@
 
-enum VerificationStatus { verified, counterfeit, unknown, notMedicine }
+/// Outcome of a TMDA registration check. The app never claims "counterfeit" —
+/// it can only say whether the product matches the TMDA register.
+enum VerificationStatus { registered, notFound, unknown, notMedicine }
 
 class ScanRecord {
   final String id;
@@ -58,10 +60,10 @@ class ScanRecord {
 
   String get statusLabel {
     switch (status) {
-      case VerificationStatus.verified:
-        return 'Verified';
-      case VerificationStatus.counterfeit:
-        return 'Counterfeit';
+      case VerificationStatus.registered:
+        return 'Registered';
+      case VerificationStatus.notFound:
+        return 'Not on register';
       case VerificationStatus.unknown:
         return 'Unknown';
       case VerificationStatus.notMedicine:

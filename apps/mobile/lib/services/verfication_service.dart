@@ -56,20 +56,17 @@ class VerificationService {
     // Map backend status string to app enum
     VerificationStatus status;
     switch (response.status.toLowerCase()) {
-      case 'verified':
-      case 'authentic':
-      case 'genuine':
-        status = VerificationStatus.verified;
+      case 'registered':
+      case 'verified': // legacy backend value
+        status = VerificationStatus.registered;
         break;
-      case 'counterfeit':
-      case 'fake':
-      case 'not_verified':
-        status = VerificationStatus.counterfeit;
+      case 'not_found':
+      case 'counterfeit': // legacy backend value — we no longer claim this
+        status = VerificationStatus.notFound;
         break;
-      // ── Non-medicine / unrecognised image — must NOT map to counterfeit ──
+      // ── Non-medicine / unrecognised image — must NOT map to notFound ──
       case 'not_medicine':
       case 'invalid':
-      case 'unknown':
         status = VerificationStatus.notMedicine;
         break;
       default:

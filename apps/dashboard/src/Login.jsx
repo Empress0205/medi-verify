@@ -24,7 +24,7 @@ export default function Login({ onAuthed }) {
       <form className="login-card" onSubmit={submit}>
         <div className="mark">🛡️</div>
         <h1>MediGuard Admin</h1>
-        <p>Review and triage counterfeit-medicine reports across Tanzania.</p>
+        <p>Review and triage suspicious-medicine reports across Tanzania.</p>
 
         <label className="field">
           <span>Username</span>

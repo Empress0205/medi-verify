@@ -160,17 +160,17 @@ class ScanResponse(BaseModel):
 
 
 class ScanTrendPoint(BaseModel):
-    month:       str
-    scans:       int
-    counterfeit: int
+    month:     str
+    scans:     int
+    not_found: int
 
 
 class ScanStats(BaseModel):
-    total:            int
-    verified:         int
-    counterfeit:      int
-    unknown:          int
-    not_medicine:     int
-    counterfeit_rate: float           # % of real-medicine scans flagged counterfeit
-    avg_confidence:   float           # 0.0–1.0
-    trend:            list[ScanTrendPoint]
+    total:          int
+    registered:     int
+    not_found:      int
+    unknown:        int
+    not_medicine:   int
+    not_found_rate: float             # % of readable medicine scans not on the register
+    avg_confidence: float             # 0.0–1.0
+    trend:          list[ScanTrendPoint]

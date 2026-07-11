@@ -71,7 +71,7 @@ async def _call_real_ai(image_bytes: bytes, filename: str) -> VerifyResponse:
 async def _mock_ai(image_bytes: bytes) -> VerifyResponse:
     """
     Deterministic mock: same image always gives the same result.
-    Simulates ~70% verified, ~20% counterfeit, ~10% non-medicine.
+    Simulates ~70% registered, ~20% not found on the register, ~10% non-medicine.
     """
     seed = _image_hash_seed(image_bytes)
     rng = random.Random(seed)
@@ -105,23 +105,24 @@ async def _mock_ai(image_bytes: bytes) -> VerifyResponse:
         warnings=["Store below 30°C", "Keep out of reach of children"] if rng.random() > 0.6 else None,
     )
 
-    # ~20% counterfeit (of medicine images)
+    # ~20% not found on the register (of medicine images)
     if roll < 0.30:
         return VerifyResponse(
             success=True,
-            status="counterfeit",
+            status="not_found",
             confidence_score=confidence,
             medicine_info=info,
-            message="Packaging inconsistencies detected. Likely counterfeit.",
+            message="No matching product found on the TMDA register. This does not "
+                    "prove the medicine is fake — please be cautious and consider reporting it.",
         )
 
-    # 70% verified
+    # 70% registered
     return VerifyResponse(
         success=True,
-        status="verified",
+        status="registered",
         confidence_score=confidence,
         medicine_info=info,
-        message="Medicine verified against database records.",
+        message="This product matches a registered TMDA record.",
     )
 
 

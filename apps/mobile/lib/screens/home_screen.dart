@@ -54,7 +54,7 @@ class HomeScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'AI-Powered Medicine Authentication',
+                                'Check medicines on the TMDA register',
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodyMedium
@@ -91,8 +91,8 @@ class HomeScreen extends StatelessWidget {
               offset: const Offset(0, -28),
               child: StatsCard(
                 scans: state.totalScans,
-                verified: state.verifiedCount,
-                reported: state.reportedCount,
+                registered: state.registeredCount,
+                notFound: state.notFoundCount,
               ),
             ),
 
@@ -116,7 +116,7 @@ class HomeScreen extends StatelessWidget {
                     iconColor: Colors.white,
                     iconBg: AppTheme.primary,
                     title: 'Scan Medicine',
-                    subtitle: 'Verify authenticity instantly',
+                    subtitle: 'Check TMDA registration instantly',
                     onTap: () => Navigator.pushNamed(context, '/scan'),
                   ),
                   QuickActionCard(
@@ -124,7 +124,7 @@ class HomeScreen extends StatelessWidget {
                     iconColor: Colors.white,
                     iconBg: AppTheme.info,
                     title: 'View History',
-                    subtitle: 'Check past verifications',
+                    subtitle: 'See your past registration checks',
                     onTap: () => Navigator.pushNamed(context, '/history'),
                   ),
                   QuickActionCard(
@@ -132,7 +132,7 @@ class HomeScreen extends StatelessWidget {
                     iconColor: Colors.white,
                     iconBg: AppTheme.danger,
                     title: 'Report Suspicious',
-                    subtitle: 'Submit counterfeit report',
+                    subtitle: 'Flag a medicine for TMDA review',
                     onTap: () => Navigator.pushNamed(context, '/report'),
                   ),
                   QuickActionCard(
@@ -180,7 +180,7 @@ class HomeScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Always verify your medicines before consumption. Your health is our priority.',
+                            'Check that your medicines are registered with TMDA before use. If a product is not on the register, be cautious and report it.',
                             style:
                                 Theme.of(context).textTheme.bodyMedium?.copyWith(
                                       color: Colors.white.withOpacity(0.9),

@@ -423,6 +423,128 @@
         ]
       }
     },
+    "/scans/stats": {
+      "get": {
+        "tags": [
+          "Scans"
+        ],
+        "summary": "Scan Stats",
+        "operationId": "scan_stats_scans_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanStats"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/scans": {
+      "get": {
+        "tags": [
+          "Scans"
+        ],
+        "summary": "List Scans",
+        "operationId": "list_scans_scans_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Skip"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ScanResponse"
+                  },
+                  "title": "Response List Scans Scans Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/": {
       "get": {
         "tags": [
@@ -977,15 +1099,150 @@
         ],
         "title": "ReportStatus"
       },
+      "ScanResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "medicine_name": {
+            "type": "string",
+            "title": "Medicine Name"
+          },
+          "manufacturer": {
+            "type": "string",
+            "title": "Manufacturer"
+          },
+          "batch_number": {
+            "type": "string",
+            "title": "Batch Number"
+          },
+          "expiry_date": {
+            "type": "string",
+            "title": "Expiry Date"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ScanStatus"
+          },
+          "confidence_score": {
+            "type": "number",
+            "title": "Confidence Score"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "scanned_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Scanned At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "medicine_name",
+          "manufacturer",
+          "batch_number",
+          "expiry_date",
+          "status",
+          "confidence_score",
+          "notes",
+          "scanned_at"
+        ],
+        "title": "ScanResponse"
+      },
+      "ScanStats": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "registered": {
+            "type": "integer",
+            "title": "Registered"
+          },
+          "not_found": {
+            "type": "integer",
+            "title": "Not Found"
+          },
+          "unknown": {
+            "type": "integer",
+            "title": "Unknown"
+          },
+          "not_medicine": {
+            "type": "integer",
+            "title": "Not Medicine"
+          },
+          "not_found_rate": {
+            "type": "number",
+            "title": "Not Found Rate"
+          },
+          "avg_confidence": {
+            "type": "number",
+            "title": "Avg Confidence"
+          },
+          "trend": {
+            "items": {
+              "$ref": "#/components/schemas/ScanTrendPoint"
+            },
+            "type": "array",
+            "title": "Trend"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "registered",
+          "not_found",
+          "unknown",
+          "not_medicine",
+          "not_found_rate",
+          "avg_confidence",
+          "trend"
+        ],
+        "title": "ScanStats"
+      },
       "ScanStatus": {
         "type": "string",
         "enum": [
-          "verified",
-          "counterfeit",
+          "registered",
+          "not_found",
           "unknown",
           "not_medicine"
         ],
-        "title": "ScanStatus"
+        "title": "ScanStatus",
+        "description": "Outcome of a REGISTRATION check against the TMDA register.\n\nThe engine verifies that the package text matches a registered product \u2014\nit cannot prove physical authenticity, so there is deliberately no\n\"counterfeit\" value here. Counterfeit is a human conclusion, reached in\nthe dashboard by confirming a report (ReportStatus.confirmed)."
+      },
+      "ScanTrendPoint": {
+        "properties": {
+          "month": {
+            "type": "string",
+            "title": "Month"
+          },
+          "scans": {
+            "type": "integer",
+            "title": "Scans"
+          },
+          "not_found": {
+            "type": "integer",
+            "title": "Not Found"
+          }
+        },
+        "type": "object",
+        "required": [
+          "month",
+          "scans",
+          "not_found"
+        ],
+        "title": "ScanTrendPoint"
       },
       "StatusUpdateRequest": {
         "properties": {

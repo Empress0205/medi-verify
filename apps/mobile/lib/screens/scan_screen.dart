@@ -136,7 +136,7 @@ class _ScanScreenState extends State<ScanScreen>
       _capturedImage = imageFile;
       _isSending = true;
       _mode = _ScanMode.analyzing;
-      _statusMessage = 'Sending to AI server...';
+      _statusMessage = 'Checking the TMDA register...';
     });
 
     final record = await VerificationService.verify(imageFile);
@@ -627,7 +627,7 @@ class _ScanScreenState extends State<ScanScreen>
                   ),
                   SizedBox(width: 12),
                   Text(
-                    'AI is verifying your medicine...',
+                    'Checking the TMDA register...',
                     style: TextStyle(color: Colors.white, fontSize: 13),
                   ),
                 ],
@@ -829,7 +829,7 @@ class _AnalyzingOverlay extends StatelessWidget {
               ),
               SizedBox(height: 16),
               Text(
-                'AI Analyzing...',
+                'Reading label...',
                 style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,

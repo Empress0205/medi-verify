@@ -10,10 +10,17 @@ import enum
 
 
 class ScanStatus(str, enum.Enum):
-    verified = "verified"
-    counterfeit = "counterfeit"
-    unknown = "unknown"
-    not_medicine = "not_medicine"
+    """Outcome of a REGISTRATION check against the TMDA register.
+
+    The engine verifies that the package text matches a registered product —
+    it cannot prove physical authenticity, so there is deliberately no
+    "counterfeit" value here. Counterfeit is a human conclusion, reached in
+    the dashboard by confirming a report (ReportStatus.confirmed).
+    """
+    registered = "registered"        # strong match to a TMDA record
+    not_found = "not_found"          # readable, but no convincing register match
+    unknown = "unknown"              # inconclusive read/match
+    not_medicine = "not_medicine"    # image isn't medicine packaging
 
 
 class ReportStatus(str, enum.Enum):

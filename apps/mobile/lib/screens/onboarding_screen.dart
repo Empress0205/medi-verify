@@ -20,16 +20,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       iconBg: AppTheme.primaryLight,
       title: 'Protect Your\nHealth Today',
       subtitle:
-          'MediVerify uses AI to instantly verify the authenticity of your medicines. Stay safe, stay protected.',
+          'MediVerify reads your medicine\'s packaging and checks it against the TMDA register of approved products in seconds.',
       gradient: AppTheme.headerGradient,
     ),
     _OnboardingData(
       icon: Icons.qr_code_scanner_rounded,
       iconColor: Colors.white,
       iconBg: Colors.white.withOpacity(0.2),
-      title: 'Scan & Verify\nIn Seconds',
+      title: 'Scan & Check\nIn Seconds',
       subtitle:
-          'Simply scan the QR code or barcode on your medicine packaging. Get instant AI-powered verification results.',
+          'Photograph the medicine label and we\'ll look it up on the TMDA register instantly — no typing needed.',
       gradient: const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
@@ -40,9 +40,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       icon: Icons.report_problem_rounded,
       iconColor: Colors.white,
       iconBg: Colors.white.withOpacity(0.2),
-      title: 'Report\nCounterfeits',
+      title: 'Report\nSuspicious Medicine',
       subtitle:
-          'Found a suspicious medicine? Report it to protect others in your community. Together we fight counterfeit drugs.',
+          'Found a medicine that is not on the register or looks wrong? Report it so TMDA reviewers can investigate and protect your community.',
       gradient: const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,

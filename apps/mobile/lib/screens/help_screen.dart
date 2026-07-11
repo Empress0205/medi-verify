@@ -28,31 +28,31 @@ class HelpScreen extends StatelessWidget {
 
   static const List<Map<String, dynamic>> _results = [
     {
-      'label': 'Verified',
+      'label': 'Registered',
       'description':
-          'The medicine is authentic and registered in our database. Safe to use as directed.',
+          'The product matches a record on the TMDA register. Registration confirms approval — still check packaging condition and expiry before use.',
       'color': Color(0xFF16A34A),
       'bgColor': Color(0xFFDCFCE7),
       'borderColor': Color(0xFFBBF7D0),
       'icon': Icons.check_circle_outline,
     },
     {
-      'label': 'Suspicious',
+      'label': 'Not on register',
       'description':
-          'Inconsistencies detected in packaging or labels. Verify with a pharmacist before use.',
+          'No matching product was found on the TMDA register. This does not prove it is fake — but do not use it until confirmed, and please report it.',
       'color': Color(0xFFD97706),
       'bgColor': Color(0xFFFEF9C3),
       'borderColor': Color(0xFFFDE68A),
-      'icon': Icons.warning_amber_outlined,
+      'icon': Icons.search_off_outlined,
     },
     {
-      'label': 'Counterfeit',
+      'label': 'Unknown',
       'description':
-          'Strong indicators of counterfeit medicine. DO NOT USE. Report immediately.',
-      'color': Color(0xFFDC2626),
-      'bgColor': Color(0xFFFEE2E2),
-      'borderColor': Color(0xFFFECACA),
-      'icon': Icons.cancel_outlined,
+          'The check could not be completed (unclear photo or unreadable label). Retake the photo or consult a pharmacist.',
+      'color': Color(0xFF64748B),
+      'bgColor': Color(0xFFF1F5F9),
+      'borderColor': Color(0xFFE2E8F0),
+      'icon': Icons.help_outline,
     },
   ];
 
@@ -125,7 +125,7 @@ class HelpScreen extends StatelessWidget {
                       ),
                       SizedBox(height: 6),
                       Text(
-                        'MediVerify uses advanced AI technology to help you verify the authenticity of medicines and protect yourself from counterfeit drugs.',
+                        'MediVerify reads your medicine\'s packaging and checks it against the TMDA register of approved products, helping you spot medicines that may not be legitimate.',
                         style:
                             TextStyle(fontSize: 13, color: Colors.black54),
                       ),

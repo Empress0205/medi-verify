@@ -11,10 +11,10 @@ class AppState extends ChangeNotifier {
   bool get isScanning => _isScanning;
 
   int get totalScans => _history.length;
-  int get verifiedCount =>
-      _history.where((r) => r.status == VerificationStatus.verified).length;
-  int get reportedCount =>
-      _history.where((r) => r.status == VerificationStatus.counterfeit).length;
+  int get registeredCount =>
+      _history.where((r) => r.status == VerificationStatus.registered).length;
+  int get notFoundCount =>
+      _history.where((r) => r.status == VerificationStatus.notFound).length;
 
   void addScan(ScanRecord record) {
     _history.insert(0, record);

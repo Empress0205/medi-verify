@@ -30,8 +30,8 @@ export default function Scans({ onAuthError }) {
   if (!stats) return <div className="empty">Loading…</div>;
 
   const segments = [
-    { label: 'Verified', value: stats.verified, color: 'var(--sc-verified)' },
-    { label: 'Counterfeit', value: stats.counterfeit, color: 'var(--sc-counterfeit)' },
+    { label: 'Registered', value: stats.registered, color: 'var(--sc-registered)' },
+    { label: 'Not on register', value: stats.not_found, color: 'var(--sc-not_found)' },
     { label: 'Not medicine', value: stats.not_medicine, color: 'var(--sc-not_medicine)' },
     { label: 'Unknown', value: stats.unknown, color: 'var(--sc-unknown)' },
   ];
@@ -40,9 +40,9 @@ export default function Scans({ onAuthError }) {
     <>
       <div className="tiles">
         <StatTile label="Total scans" value={stats.total} icon="🔍" />
-        <StatTile label="Verified genuine" value={stats.verified} icon="✅" tone="var(--sc-verified)" />
-        <StatTile label="Counterfeit" value={stats.counterfeit} icon="⛔" tone="var(--sc-counterfeit)" />
-        <StatTile label="Counterfeit rate" value={`${stats.counterfeit_rate}%`} icon="🧪" tone="var(--st-confirmed)" />
+        <StatTile label="Registered" value={stats.registered} icon="✅" tone="var(--sc-registered)" />
+        <StatTile label="Not on register" value={stats.not_found} icon="⚠️" tone="var(--sc-not_found)" />
+        <StatTile label="Not-found rate" value={`${stats.not_found_rate}%`} icon="🧪" tone="var(--sc-not_found)" />
         <StatTile label="Not medicine" value={stats.not_medicine} icon="🚫" tone="var(--sc-not_medicine)" />
         <StatTile label="Avg confidence" value={pct(stats.avg_confidence)} icon="📈" />
       </div>
@@ -50,11 +50,11 @@ export default function Scans({ onAuthError }) {
       <div className="grid c2">
         <div className="card">
           <h3>Scan volume</h3>
-          <div className="sub">Last 6 months — scans vs counterfeits detected</div>
+          <div className="sub">Last 6 months — scans vs products not on the register</div>
           <TrendLine data={stats.trend} xKey="month"
             series={[
               { key: 'scans', label: 'Scans', color: 'var(--brand)' },
-              { key: 'counterfeit', label: 'Counterfeit', color: 'var(--sc-counterfeit)' },
+              { key: 'not_found', label: 'Not on register', color: 'var(--sc-not_found)' },
             ]} />
         </div>
         <div className="card">
@@ -70,8 +70,8 @@ export default function Scans({ onAuthError }) {
                  value={search} onChange={(e) => setSearch(e.target.value)} />
           <select className="select" value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="">All results</option>
-            <option value="verified">Verified</option>
-            <option value="counterfeit">Counterfeit</option>
+            <option value="registered">Registered</option>
+            <option value="not_found">Not on register</option>
             <option value="not_medicine">Not medicine</option>
             <option value="unknown">Unknown</option>
           </select>

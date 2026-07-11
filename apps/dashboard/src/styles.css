@@ -30,9 +30,9 @@
   --st-review: var(--dv-info);
   --st-confirmed: var(--dv-critical);
   --st-dismissed: var(--dv-neutral);
-  /* scan result colors */
-  --sc-verified: var(--dv-good);
-  --sc-counterfeit: var(--dv-critical);
+  /* scan result colors — a register miss is caution (amber), not an accusation */
+  --sc-registered: var(--dv-good);
+  --sc-not_found: var(--dv-warning);
   --sc-unknown: var(--dv-neutral);
   --sc-not_medicine: #e0913a;
 

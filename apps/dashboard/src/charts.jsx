@@ -20,8 +20,8 @@ const REPORT_STATUS = {
   dismissed: ['Dismissed', 'var(--st-dismissed)'],
 };
 const SCAN_STATUS = {
-  verified: ['Verified', 'var(--sc-verified)'],
-  counterfeit: ['Counterfeit', 'var(--sc-counterfeit)'],
+  registered: ['Registered', 'var(--sc-registered)'],
+  not_found: ['Not on register', 'var(--sc-not_found)'],
   unknown: ['Unknown', 'var(--sc-unknown)'],
   not_medicine: ['Not medicine', 'var(--sc-not_medicine)'],
 };

@@ -1,7 +1,7 @@
 /// Represents the raw response from POST /verify
 class VerifyApiResponse {
   final bool success;
-  final String status; // "verified" | "counterfeit" | "invalid" | "unknown"
+  final String status; // "registered" | "not_found" | "not_medicine" | "unknown"
   final double confidenceScore;
   final MedicineInfo? medicineInfo;
   final String? message;
@@ -48,12 +48,12 @@ class VerifyApiResponse {
   bool get isNonMedicineScan =>
       status == 'not_medicine' || status == 'invalid' || status == 'unknown';
 
-  /// True only when a real medicine is confirmed counterfeit
-  bool get isConfirmedCounterfeit =>
-      status == 'counterfeit' && !isNonMedicineScan;
+  /// True when a readable medicine could not be matched to the TMDA register
+  bool get isNotFound =>
+      (status == 'not_found' || status == 'counterfeit') && !isNonMedicineScan;
 
-  /// True when a real medicine is verified authentic
-  bool get isVerified => status == 'verified';
+  /// True when the product matches a registered TMDA record
+  bool get isRegistered => status == 'registered' || status == 'verified';
 }
 
 /// Medicine details returned by the backend
@@ -120,13 +120,13 @@ class VerificationResult {
   bool get isNonMedicineScan =>
       isSuccess && (data?.isNonMedicineScan ?? false);
 
-  /// Whether a real medicine was scanned and found counterfeit
-  bool get isCounterfeit =>
-      isSuccess && (data?.isConfirmedCounterfeit ?? false);
+  /// Whether a readable medicine was scanned but not found on the register
+  bool get isNotFound =>
+      isSuccess && (data?.isNotFound ?? false);
 
-  /// Whether a real medicine was scanned and verified authentic
-  bool get isVerified =>
-      isSuccess && (data?.isVerified ?? false);
+  /// Whether the scanned product matches a registered TMDA record
+  bool get isRegistered =>
+      isSuccess && (data?.isRegistered ?? false);
 }
 
 enum VerificationFailureType {

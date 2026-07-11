@@ -40,8 +40,8 @@ export default function Overview({ onAuthError }) {
         <StatTile label="Confirmed" value={s.confirmed} icon="⚠️" tone="var(--st-confirmed)" />
         <StatTile label="Confirmation rate" value={`${a.confirmation_rate}%`} icon="✓" />
         <StatTile label="Total scans" value={scan.total} icon="🔍" />
-        <StatTile label="Counterfeit rate" value={`${scan.counterfeit_rate}%`} icon="🧪" tone="var(--st-confirmed)" />
-        <StatTile label="Avg AI confidence" value={pct(scan.avg_confidence)} icon="📈" />
+        <StatTile label="Not-found rate" value={`${scan.not_found_rate}%`} icon="🧪" tone="var(--sc-not_found)" />
+        <StatTile label="Avg match confidence" value={pct(scan.avg_confidence)} icon="📈" />
       </div>
 
       <div className="grid c2">
@@ -63,12 +63,12 @@ export default function Overview({ onAuthError }) {
 
       <div className="grid c2">
         <div className="card">
-          <h3>Scan detections</h3>
-          <div className="sub">Verification volume vs counterfeits caught</div>
+          <h3>Register checks</h3>
+          <div className="sub">Scan volume vs products not found on the register</div>
           <TrendLine data={scan.trend} xKey="month"
             series={[
               { key: 'scans', label: 'Scans', color: 'var(--brand)' },
-              { key: 'counterfeit', label: 'Counterfeit', color: 'var(--st-confirmed)' },
+              { key: 'not_found', label: 'Not on register', color: 'var(--sc-not_found)' },
             ]} />
         </div>
         <div className="card">

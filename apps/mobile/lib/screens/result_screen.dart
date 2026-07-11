@@ -15,49 +15,44 @@ class ResultScreen extends StatelessWidget {
       return const Scaffold(body: Center(child: Text('No scan data')));
     }
 
-    final isVerified = record.status == VerificationStatus.verified;
-    final isCounterfeit = record.status == VerificationStatus.counterfeit;
-    final isUnknown = record.status == VerificationStatus.unknown;
+    final isRegistered = record.status == VerificationStatus.registered;
+    final isNotFound = record.status == VerificationStatus.notFound;
 
-    Color headerColor;
     Gradient headerGradient;
     IconData statusIcon;
     String statusTitle;
     String statusMessage;
 
-    if (isVerified) {
-      headerColor = AppTheme.success;
+    if (isRegistered) {
       headerGradient = const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [Color(0xFF27AE60), Color(0xFF1E8449)],
       );
       statusIcon = Icons.verified_rounded;
-      statusTitle = 'Medicine Verified!';
+      statusTitle = 'Registered with TMDA';
       statusMessage =
-          'This medicine has been authenticated and is safe for use. All details match our database.';
-    } else if (isCounterfeit) {
-      headerColor = AppTheme.danger;
-      headerGradient = const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFFE05C2A), Color(0xFFC03A10)],
-      );
-      statusIcon = Icons.dangerous_rounded;
-      statusTitle = 'Counterfeit Detected!';
-      statusMessage =
-          'WARNING: This medicine appears to be counterfeit. Do not consume it. Please report it immediately.';
-    } else {
-      headerColor = AppTheme.warning;
+          'This product matches a record on the TMDA register. Registration confirms the product is approved — still check the packaging condition and expiry date before use.';
+    } else if (isNotFound) {
       headerGradient = const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [Color(0xFFF5A623), Color(0xFFD4891C)],
       );
-      statusIcon = Icons.help_rounded;
-      statusTitle = 'Verification Inconclusive';
+      statusIcon = Icons.search_off_rounded;
+      statusTitle = 'Not Found on Register';
       statusMessage =
-          'We could not definitively verify this medicine. Exercise caution and consult a pharmacist.';
+          'We could not find this product on the TMDA register. This does not prove it is fake — it may be newly registered or the label may have been misread. Be cautious: do not use it until confirmed, and please report it.';
+    } else {
+      headerGradient = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF90A4AE), Color(0xFF607D8B)],
+      );
+      statusIcon = Icons.help_rounded;
+      statusTitle = 'Check Inconclusive';
+      statusMessage =
+          'We could not complete the register check for this medicine. Try scanning again with a clearer photo, or consult a pharmacist.';
     }
 
     return Scaffold(
@@ -154,7 +149,7 @@ class ResultScreen extends StatelessWidget {
                                     color: Colors.white, size: 18),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'AI Confidence: ${(record.confidenceScore * 100).toStringAsFixed(1)}%',
+                                  'Match confidence: ${(record.confidenceScore * 100).toStringAsFixed(1)}%',
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,
@@ -194,12 +189,12 @@ class ResultScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     children: [
-                      if (isCounterfeit)
+                      if (isNotFound)
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.danger,
+                              backgroundColor: AppTheme.warning,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                             ),
                             onPressed: () =>
