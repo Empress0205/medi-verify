@@ -55,6 +55,9 @@ export const api = {
   base: BASE,
   login: (username, password) =>
     request('/auth/login', { method: 'POST', body: { username, password }, authed: false }),
+  // Health of the local mirror of the TMDA register. If this is empty or stale,
+  // every scan silently returns "not on register" — so it is worth surfacing.
+  registerStatus: () => request('/register/status', { authed: false }),
   analytics: () => request('/analytics'),
   reports: (params = {}) => {
     const q = new URLSearchParams(

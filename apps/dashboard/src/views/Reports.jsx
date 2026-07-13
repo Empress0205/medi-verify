@@ -2,13 +2,17 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { api, ApiError } from '../api.js';
 import { StatusBadge } from '../charts.jsx';
 
+// Confirming a report means a HUMAN has substantiated it — the app never makes
+// that call itself. It is deliberately not labelled "counterfeit": reports also
+// cover expired stock, lapsed registrations and packaging problems, and only a
+// reviewer can say which. The specific finding goes in the notes.
 const NEXT = {
   pending: [
     { status: 'under_review', label: 'Start review', cls: 'btn-primary' },
     { status: 'dismissed', label: 'Dismiss', cls: 'btn-ghost' },
   ],
   under_review: [
-    { status: 'confirmed', label: 'Confirm counterfeit', cls: 'btn-danger' },
+    { status: 'confirmed', label: 'Confirm issue', cls: 'btn-danger' },
     { status: 'dismissed', label: 'Dismiss', cls: 'btn-ghost' },
   ],
   confirmed: [], dismissed: [],
@@ -165,7 +169,7 @@ export default function Reports({ onAuthError }) {
               <dl className="kv">
                 <dt>Batch</dt><dd>{sel.batch_number || '—'}</dd>
                 <dt>Expiry</dt><dd>{sel.expiry_date || '—'}</dd>
-                <dt>AI confidence</dt><dd>{pct(sel.confidence)}</dd>
+                <dt>Match confidence</dt><dd>{pct(sel.confidence)}</dd>
                 <dt>Category</dt><dd>{sel.category}</dd>
                 <dt>Region</dt><dd>{sel.region}</dd>
                 <dt>Street</dt><dd>{sel.street || '—'}</dd>

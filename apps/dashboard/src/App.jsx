@@ -43,7 +43,7 @@ export default function App() {
             </button>
           ))}
         </nav>
-        <div className="foot">MediGuard · TMDA verification<br />v1.0 · mock engine</div>
+        <div className="foot">MediGuard · TMDA register checks<br />v1.0</div>
       </aside>
 
       <div className="main">

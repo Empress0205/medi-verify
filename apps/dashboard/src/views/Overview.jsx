@@ -4,9 +4,69 @@ import { StatTile, Donut, TrendLine, RankedBars } from '../charts.jsx';
 
 const pct = (v) => `${Math.round((v || 0) * 100)}%`;
 
+// Age of the register mirror, in hours, or null if never synced.
+function hoursSince(iso) {
+  if (!iso) return null;
+  return (Date.now() - new Date(iso + 'Z').getTime()) / 36e5;
+}
+
+/**
+ * Health of the local TMDA register mirror.
+ *
+ * This is the single most important thing on the page: if the mirror is empty,
+ * every scan quietly comes back "not on register" and the app looks like it is
+ * working. It is worth showing loudly rather than discovering it from support
+ * tickets.
+ */
+function RegisterHealth({ reg }) {
+  if (!reg) return null;
+
+  const count = reg.medicines || 0;
+  const age = hoursSince(reg.last_sync);
+  const empty = count === 0;
+  const stale = age !== null && age > 48;
+  const failed = reg.last_sync_ok === false;
+
+  if (empty) {
+    return (
+      <div className="error" style={{ marginBottom: 16 }}>
+        <b>TMDA register is empty.</b> No products are loaded, so every scan will
+        return “not on register”. {reg.note ? `Last sync error: ${reg.note}` : 'Check the API logs.'}
+      </div>
+    );
+  }
+
+  const warn = stale || failed;
+  return (
+    <div
+      className="card"
+      style={{
+        marginBottom: 16,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        borderLeft: `4px solid ${warn ? 'var(--st-pending)' : 'var(--brand)'}`,
+      }}
+    >
+      <span style={{ fontSize: 20 }}>{warn ? '⚠️' : '✅'}</span>
+      <div>
+        <b>{count.toLocaleString()} products</b> on the TMDA register
+        <div className="sub">
+          {reg.last_sync
+            ? `Last synced ${age < 1 ? 'less than an hour' : `${Math.round(age)} hours`} ago`
+            : 'Never synced'}
+          {failed && ' · last sync failed'}
+          {stale && ' · sync may be stale'}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Overview({ onAuthError }) {
   const [a, setA] = useState(null);
   const [scan, setScan] = useState(null);
+  const [reg, setReg] = useState(null);
   const [err, setErr] = useState('');
 
   useEffect(() => {
@@ -18,6 +78,8 @@ export default function Overview({ onAuthError }) {
         if (e instanceof ApiError && e.status === 401) return onAuthError();
         setErr(e.message);
       }
+      // Non-fatal: the register banner is a diagnostic, not core to the page.
+      try { setReg(await api.registerStatus()); } catch (_) { /* ignore */ }
     })();
   }, [onAuthError]);
 
@@ -34,6 +96,8 @@ export default function Overview({ onAuthError }) {
 
   return (
     <>
+      <RegisterHealth reg={reg} />
+
       <div className="tiles">
         <StatTile label="Total reports" value={s.total} icon="🚩" />
         <StatTile label="Pending queue" value={s.pending} icon="⏳" tone="var(--st-pending)" />
