@@ -28,7 +28,11 @@ async function request(path, { method = 'GET', body, authed = true } = {}) {
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  if (res.status === 401) {
+  // A 401 on an AUTHED request means the token is gone or stale -> sign out.
+  // A 401 on the login call itself just means the credentials were wrong; it
+  // must NOT be rewritten as "session expired" (that sent us hunting for an
+  // expiry bug when the password was simply being rejected).
+  if (res.status === 401 && authed) {
     auth.clear();
     throw new ApiError('Session expired. Please sign in again.', 401);
   }

@@ -41,7 +41,8 @@ export default function Login({ onAuthed }) {
         <button className="btn btn-primary" style={{ width: '100%', padding: '11px' }} disabled={loading}>
           {loading ? 'Signing in…' : 'Sign in'}
         </button>
-        <div className="hint">Default dev login: <b>admin</b> / <b>admin123</b></div>
+        {/* No credentials hint here — this console is publicly reachable. */}
+        <div className="hint">Authorised TMDA reviewers only.</div>
       </form>
     </div>
   );

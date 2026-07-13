@@ -70,13 +70,33 @@ async def require_admin(token: str = Depends(oauth2_scheme)) -> str:
 
 
 async def seed_default_admin() -> None:
-    """Create the default admin if the table is empty. Called on startup."""
+    """Reconcile the admin account with config on startup.
+
+    ADMIN_PASSWORD is the source of truth. Seeding only "if the table is empty"
+    was a trap: the row is created on the FIRST boot, so changing ADMIN_PASSWORD
+    afterwards silently did nothing — the deployment kept the original password
+    while the operator typed the new one and got "invalid username or password".
+
+    So: create the admin if missing, and if it exists but the configured password
+    no longer matches, update the stored hash.
+    """
     async with AsyncSessionLocal() as db:
-        existing = await db.execute(select(AdminUser).limit(1))
-        if existing.scalar_one_or_none() is None:
+        result = await db.execute(
+            select(AdminUser).where(AdminUser.username == settings.ADMIN_USERNAME)
+        )
+        user = result.scalar_one_or_none()
+
+        if user is None:
             db.add(AdminUser(
                 username=settings.ADMIN_USERNAME,
                 email=settings.ADMIN_EMAIL,
                 hashed_password=hash_password(settings.ADMIN_PASSWORD),
             ))
             await db.commit()
+            print(f"[startup] created admin user '{settings.ADMIN_USERNAME}'")
+            return
+
+        if not verify_password(settings.ADMIN_PASSWORD, user.hashed_password):
+            user.hashed_password = hash_password(settings.ADMIN_PASSWORD)
+            await db.commit()
+            print(f"[startup] admin '{settings.ADMIN_USERNAME}' password updated from ADMIN_PASSWORD")
