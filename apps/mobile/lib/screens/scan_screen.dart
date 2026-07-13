@@ -30,6 +30,12 @@ class _ScanScreenState extends State<ScanScreen>
   File? _capturedImage;
   String _statusMessage = 'Choose how to scan your medicine';
 
+  /// Photos of the SAME pack, accumulated across the adaptive capture loop.
+  /// The registration number and the expiry usually live on a different panel
+  /// from the brand name, so one photo of the front is often not enough.
+  final List<File> _photos = [];
+  static const _maxPhotos = 3;
+
   // ── Animation ──────────────────────────────────────────────────────────────
   late AnimationController _animController;
   late Animation<double> _scanLineAnim;
@@ -139,10 +145,14 @@ class _ScanScreenState extends State<ScanScreen>
   //  Send to Backend
   // ────────────────────────────────────────────────────────────────────────────
   Future<void> _sendToBackend(File imageFile) async {
+    _photos.add(imageFile);
+
     setState(() {
       _capturedImage = imageFile;
       _mode = _ScanMode.analyzing;
-      _statusMessage = 'Checking the TMDA register…';
+      _statusMessage = _photos.length > 1
+          ? 'Checking both photos against the TMDA register…'
+          : 'Checking the TMDA register…';
     });
 
     // Free-tier backends sleep when idle; the first request has to cold-start.
@@ -155,11 +165,13 @@ class _ScanScreenState extends State<ScanScreen>
       }
     });
 
-    final record = await VerificationService.verify(imageFile);
+    final outcome = await VerificationService.verify(_photos);
 
     if (!mounted) return;
 
-    if (record != null) {
+    if (outcome != null) {
+      final record = outcome.record;
+
       // ── Not a medicine image — show guidance, do NOT go to result screen ──
       if (record.status == VerificationStatus.notMedicine) {
         _reset();
@@ -167,9 +179,19 @@ class _ScanScreenState extends State<ScanScreen>
         return;
       }
 
-      // ✅ Real medicine scan (verified / counterfeit / unknown) → result screen
-      context.read<AppState>().addScan(record);
-      Navigator.pushReplacementNamed(context, '/result');
+      // ── Something decisive is still missing (registration number and/or the
+      // expiry — usually printed on another panel). Offer another photo rather
+      // than silently returning a worse answer.
+      if (outcome.needsMorePhotos && _photos.length < _maxPhotos) {
+        setState(() {
+          _mode = _ScanMode.idle;
+          _statusMessage = 'Choose how to scan your medicine';
+        });
+        _showNeedMoreSheet(outcome);
+        return;
+      }
+
+      _finish(record);
       return;
     }
 
@@ -178,6 +200,151 @@ class _ScanScreenState extends State<ScanScreen>
     VerificationService.clearError();
     _showError(error);
     _reset();
+  }
+
+  void _finish(ScanRecord record) {
+    context.read<AppState>().addScan(record);
+    Navigator.pushReplacementNamed(context, '/result');
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  //  "One more photo" sheet — the adaptive capture loop
+  // ────────────────────────────────────────────────────────────────────────────
+  void _showNeedMoreSheet(ScanOutcome outcome) {
+    final missing = outcome.capture?.missing ?? const <String>[];
+    final prompt = outcome.capture?.prompt ??
+        'Photograph another part of the same pack so we can complete the check.';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      isDismissible: false,
+      builder: (sheetCtx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.divider,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+            const SizedBox(height: 22),
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryLight,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.flip_camera_android_rounded,
+                  color: AppTheme.primary, size: 36),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'One more photo',
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              prompt,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            if (missing.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryLight,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(
+                  children: [
+                    for (final m in missing)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 3),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.search_rounded,
+                                size: 18, color: AppTheme.primary),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Still looking for the $m',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(color: AppTheme.textPrimary),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 22),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(sheetCtx);
+                  _takePhoto();
+                },
+                icon: const Icon(Icons.camera_alt_rounded),
+                label: const Text('Photograph the other side'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pop(sheetCtx);
+                  _uploadFromGallery();
+                },
+                icon: const Icon(Icons.photo_library_rounded),
+                label: const Text('Choose from gallery'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.textSecondary,
+                  side: const BorderSide(color: AppTheme.divider),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(sheetCtx);
+                _finish(outcome.record);
+              },
+              child: const Text(
+                'Show result anyway',
+                style: TextStyle(color: AppTheme.textSecondary),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -306,6 +473,7 @@ class _ScanScreenState extends State<ScanScreen>
   void _reset() {
     _cameraController?.dispose();
     _cameraController = null;
+    _photos.clear();   // start a fresh pack — never carry panels across scans
     if (mounted) {
       setState(() {
         _mode = _ScanMode.idle;

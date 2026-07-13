@@ -44,6 +44,26 @@ class SafetyInfo {
   bool get isRegistrationLapsed => registrationValidity == 'lapsed';
 }
 
+/// Tells the app whether another photo of the pack would improve the result.
+///
+/// The registration number and the expiry are often printed on a panel other
+/// than the front, so one photo frequently isn't enough.
+class CaptureHint {
+  final bool needsMore;
+  final List<String> missing; // e.g. ["expiry date"]
+  final String? prompt;
+
+  CaptureHint({this.needsMore = false, this.missing = const [], this.prompt});
+
+  factory CaptureHint.fromJson(Map<String, dynamic> json) => CaptureHint(
+        needsMore: json['needs_more'] ?? false,
+        missing: json['missing'] != null
+            ? List<String>.from(json['missing'])
+            : const [],
+        prompt: json['prompt'],
+      );
+}
+
 /// Represents the raw response from POST /verify
 class VerifyApiResponse {
   final bool success;
@@ -51,6 +71,7 @@ class VerifyApiResponse {
   final double confidenceScore;
   final MedicineInfo? medicineInfo;
   final SafetyInfo? safety;
+  final CaptureHint? capture;
   final String? message;
   final String? errorMessage;
   final String? scanId;
@@ -61,6 +82,7 @@ class VerifyApiResponse {
     required this.confidenceScore,
     this.medicineInfo,
     this.safety,
+    this.capture,
     this.message,
     this.errorMessage,
     this.scanId,
@@ -78,6 +100,8 @@ class VerifyApiResponse {
               ? MedicineInfo.fromJson(json['medicineInfo'])
               : null,
       safety: json['safety'] != null ? SafetyInfo.fromJson(json['safety']) : null,
+      capture:
+          json['capture'] != null ? CaptureHint.fromJson(json['capture']) : null,
       message: json['message'] ?? json['error'] ?? json['error_message'],
       errorMessage: (json['success'] == false)
           ? (json['message'] ?? json['error'] ?? json['error_message'])

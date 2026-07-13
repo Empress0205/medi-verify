@@ -8,28 +8,37 @@ class ApiService {
   ApiService._(); // prevent instantiation — use static methods only
 
   // ─── Main Verification Method ─────────────────────────────────────────────
-  /// Sends [imageFile] to POST /verify and returns a [VerificationResult].
+  /// Sends one or more photos of the SAME pack to POST /verify.
   ///
-  /// The image is sent as multipart/form-data with field name "image".
-  /// Adjust [imageFieldName] if your backend expects a different field name.
+  /// Several photos are supported because a medicine's details are routinely
+  /// split across panels — the brand on the front, the registration number and
+  /// the expiry on the back or the blister foil. They are sent together as
+  /// repeated "images" parts and read as one product.
   static Future<VerificationResult> verifyMedicine(
-    File imageFile, {
-    String imageFieldName = 'image',
+    List<File> imageFiles, {
+    String imageFieldName = 'images',
   }) async {
-    // ── 1. Validate file exists & size ─────────────────────────────────────
-    if (!imageFile.existsSync()) {
+    if (imageFiles.isEmpty) {
       return VerificationResult.failure(
-        'Image file not found. Please try again.',
+        'No image to verify. Please take a photo.',
         VerificationFailureType.imageError,
       );
     }
 
-    final fileSize = await imageFile.length();
-    if (fileSize > AppConstants.maxImageSizeBytes) {
-      return VerificationResult.failure(
-        'Image is too large (max 10MB). Please use a smaller image.',
-        VerificationFailureType.imageError,
-      );
+    // ── 1. Validate files exist & size ─────────────────────────────────────
+    for (final f in imageFiles) {
+      if (!f.existsSync()) {
+        return VerificationResult.failure(
+          'Image file not found. Please try again.',
+          VerificationFailureType.imageError,
+        );
+      }
+      if (await f.length() > AppConstants.maxImageSizeBytes) {
+        return VerificationResult.failure(
+          'Image is too large (max 10MB). Please use a smaller image.',
+          VerificationFailureType.imageError,
+        );
+      }
     }
 
     // ── 2. Build multipart request ──────────────────────────────────────────
@@ -38,15 +47,11 @@ class ApiService {
 
       final request = http.MultipartRequest('POST', uri);
 
-      // Add the image file
-      request.files.add(
-        await http.MultipartFile.fromPath(
-          imageFieldName,
-          imageFile.path,
-          // Let the server detect content type automatically
-          // or explicitly set: contentType: MediaType('image', 'jpeg')
-        ),
-      );
+      for (final f in imageFiles) {
+        request.files.add(
+          await http.MultipartFile.fromPath(imageFieldName, f.path),
+        );
+      }
 
       // Optional metadata your backend might need
       request.fields['app_version'] = AppConstants.appVersion;

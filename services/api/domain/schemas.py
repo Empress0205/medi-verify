@@ -34,7 +34,11 @@ class MedicineInfo(BaseModel):
 
 
 class ExtractedFields(BaseModel):
-    """Raw fields read off the packaging by the vision engine (pre-matching)."""
+    """Raw fields read off the packaging by the vision engine (pre-matching).
+
+    When several photos of the same pack are supplied (front, back, blister),
+    the engine reads them together and returns ONE combined field set.
+    """
     is_medicine:   bool = True     # engine's judgment: is this medicine packaging at all?
     medicine_name: Optional[str] = None
     strength:      Optional[str] = None
@@ -43,6 +47,23 @@ class ExtractedFields(BaseModel):
     mfg_date:      Optional[str] = None
     expiry_date:   Optional[str] = None
     manufacturer:  Optional[str] = None
+
+    # Guardrail: the photos appear to show DIFFERENT products, so their fields
+    # must not be stitched together into a false match.
+    conflict:      bool = False
+
+
+class CaptureHint(BaseModel):
+    """Tells the app whether another photo of the pack would improve the result.
+
+    The decisive field (the registration number) and the safety-critical field
+    (the expiry) are often printed on a different panel from the brand name —
+    so one photo of the front frequently isn't enough. A clean register match is
+    NOT sufficient grounds to stop asking: we may still be blind to the expiry.
+    """
+    needs_more: bool = False
+    missing:    list[str] = Field(default_factory=list)   # e.g. ["registration number"]
+    prompt:     Optional[str] = None                      # user-facing guidance
 
 
 class SafetyInfo(BaseModel):
@@ -74,6 +95,7 @@ class VerifyResponse(BaseModel):
     confidence_score: float = Field(ge=0.0, le=1.0)    # CANONICAL: 0.0–1.0, format to % at UI
     medicine_info:    Optional[MedicineInfo] = None
     safety:           Optional[SafetyInfo] = None      # expiry / registration-validity layer
+    capture:          Optional[CaptureHint] = None     # would another photo help?
     message:          Optional[str] = None
     error_message:    Optional[str] = None
     scan_id:          Optional[str] = None             # id of the persisted Scan row

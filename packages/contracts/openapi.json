@@ -57,11 +57,15 @@
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_verify_verify_post"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Body_verify_verify_post"
+                  }
+                ],
+                "title": "Body"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -671,16 +675,59 @@
       "Body_verify_verify_post": {
         "properties": {
           "image": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Image"
+          },
+          "images": {
+            "items": {
+              "type": "string",
+              "format": "binary"
+            },
+            "type": "array",
+            "title": "Images",
+            "default": []
           }
         },
         "type": "object",
-        "required": [
-          "image"
-        ],
         "title": "Body_verify_verify_post"
+      },
+      "CaptureHint": {
+        "properties": {
+          "needs_more": {
+            "type": "boolean",
+            "title": "Needs More",
+            "default": false
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing"
+          },
+          "prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt"
+          }
+        },
+        "type": "object",
+        "title": "CaptureHint",
+        "description": "Tells the app whether another photo of the pack would improve the result.\n\nThe decisive field (the registration number) and the safety-critical field\n(the expiry) are often printed on a different panel from the brand name \u2014\nso one photo of the front frequently isn't enough. A clean register match is\nNOT sufficient grounds to stop asking: we may still be blind to the expiry."
       },
       "CategoryPoint": {
         "properties": {
@@ -1543,6 +1590,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/SafetyInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "capture": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CaptureHint"
               },
               {
                 "type": "null"

@@ -9,24 +9,36 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+from typing import Sequence
 
 import httpx
 
 from config import get_settings
 from domain.schemas import ExtractedFields
+from infra.engine.base import MAX_PHOTOS, Photo
 
 settings = get_settings()
 
 _ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
-_PROMPT = """You are reading a photo of medicine packaging from Tanzania.
+_PROMPT = """You are reading photos of medicine packaging from Tanzania.
 
-First decide: is this actually a photo of medicine/drug packaging (a box, blister
-strip, bottle or label)? Set "is_medicine" false if it is anything else (a person,
+You may be given SEVERAL photos. They are different parts of the SAME pack (for
+example the front of the box, the back or side panel, and the blister strip).
+Read them together and combine what you find into ONE answer: take each field
+from whichever photo shows it most clearly. Information is routinely split
+across panels — the brand is usually on the front while the registration number
+and the expiry are often on the back, the side, or the foil.
+
+If the photos clearly show DIFFERENT products (different brand names, not just
+different sides of one pack), set "conflict" true and do not merge their fields.
+
+First decide: is this actually medicine/drug packaging (a box, blister strip,
+bottle or label)? Set "is_medicine" false if it is anything else (a person,
 food, a random object, an unreadable blur).
 
 If it IS medicine packaging, read these fields exactly as printed. Do not guess or
-translate. Use null for any field that is not visible.
+translate. Use null for any field that is not visible in ANY of the photos.
 
 TWO FIELDS MATTER MOST — search the whole image carefully for them, including
 small print, side panels, the bottom of the box and the foil of a blister strip:
@@ -46,6 +58,7 @@ small print, side panels, the bottom of the box and the foil of a blister strip:
 Return ONLY this JSON object:
 {
   "is_medicine": true,
+  "conflict": false,
   "medicine_name": "brand or product name",
   "strength": "e.g. 500mg",
   "reg_no": "TMDA/TFDA registration or certificate number if shown",
@@ -61,17 +74,24 @@ class GeminiEngine:
         self.api_key = settings.GEMINI_API_KEY.strip()
         self.model = settings.GEMINI_MODEL or "gemini-flash-latest"
 
-    async def extract(self, image_bytes: bytes, filename: str) -> ExtractedFields:
+    async def extract(self, photos: Sequence[Photo]) -> ExtractedFields:
         if not self.api_key:
             raise RuntimeError("GEMINI_API_KEY is not set")
+        if not photos:
+            raise ValueError("no photos supplied")
 
-        b64 = base64.b64encode(image_bytes).decode()
-        mime = "image/png" if filename.lower().endswith(".png") else "image/jpeg"
+        # All panels go in ONE request: the model synthesises across them, so a
+        # 3-photo scan still costs a single call (the free tier is tight).
+        parts: list[dict] = [{"text": _PROMPT}]
+        for image_bytes, filename in photos[:MAX_PHOTOS]:
+            mime = "image/png" if filename.lower().endswith(".png") else "image/jpeg"
+            parts.append({"inline_data": {
+                "mime_type": mime,
+                "data": base64.b64encode(image_bytes).decode(),
+            }})
+
         body = {
-            "contents": [{"parts": [
-                {"text": _PROMPT},
-                {"inline_data": {"mime_type": mime, "data": b64}},
-            ]}],
+            "contents": [{"parts": parts}],
             "generationConfig": {"temperature": 0, "responseMimeType": "application/json"},
         }
         url = _ENDPOINT.format(model=self.model)
@@ -82,6 +102,7 @@ class GeminiEngine:
         raw = _first_json_object(text)
         return ExtractedFields(
             is_medicine=bool(raw.get("is_medicine", True)),
+            conflict=bool(raw.get("conflict", False)),
             medicine_name=_s(raw.get("medicine_name")),
             strength=_s(raw.get("strength")),
             reg_no=_s(raw.get("reg_no")),

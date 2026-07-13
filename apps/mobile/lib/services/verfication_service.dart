@@ -5,6 +5,16 @@ import '../models/api_responses.dart';
 import '../models/scan_record.dart';
 import 'api_service.dart';
 
+/// The result of a scan: the mapped record, plus whether the backend wants
+/// another photo of the pack before it can give a complete answer.
+class ScanOutcome {
+  final ScanRecord record;
+  final CaptureHint? capture;
+  const ScanOutcome(this.record, this.capture);
+
+  bool get needsMorePhotos => capture?.needsMore ?? false;
+}
+
 /// High-level service used by the UI.
 /// Handles image picking, compression hint, API call, and model mapping.
 class VerificationService {
@@ -38,17 +48,22 @@ class VerificationService {
   }
 
   // ─── Verify ───────────────────────────────────────────────────────────────
-  /// Sends [imageFile] to the backend and maps the result to a [ScanRecord].
+  /// Sends one or more photos of the SAME pack to the backend.
+  ///
+  /// Returns the mapped record plus the backend's [CaptureHint] — which says
+  /// whether another photo (of the back/side panel, where the registration
+  /// number and expiry usually live) would materially improve the answer.
   /// Returns null if the API call failed — check [lastError] in that case.
-  static Future<ScanRecord?> verify(File imageFile) async {
-    final result = await ApiService.verifyMedicine(imageFile);
+  static Future<ScanOutcome?> verify(List<File> imageFiles) async {
+    final result = await ApiService.verifyMedicine(imageFiles);
 
     if (!result.isSuccess || result.data == null) {
       _lastError = result.errorMessage ?? 'Verification failed.';
       return null;
     }
 
-    return _mapToScanRecord(result.data!);
+    final data = result.data!;
+    return ScanOutcome(_mapToScanRecord(data), data.capture);
   }
 
   // ─── Map API Response → ScanRecord ────────────────────────────────────────
