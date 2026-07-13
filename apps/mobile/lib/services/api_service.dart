@@ -194,18 +194,4 @@ class ApiService {
       throw Exception('No internet connection. Please try again.');
     }
   }
-
-  // ─── Health Check ──────────────────────────────────────────────────────────
-  /// Ping the backend to verify it's reachable before scanning.
-  static Future<bool> isServerReachable() async {
-    try {
-      final uri = Uri.parse('${AppConstants.baseUrl}/health');
-      final response = await http.get(uri).timeout(
-        const Duration(seconds: AppConstants.connectTimeoutSeconds),
-      );
-      return response.statusCode == 200;
-    } catch (_) {
-      return false;
-    }
-  }
 }

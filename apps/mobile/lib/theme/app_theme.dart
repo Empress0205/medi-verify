@@ -59,49 +59,55 @@ class AppTheme {
     final base = GoogleFonts.poppinsTextTheme();
     return base.copyWith(
       displayLarge: base.displayLarge?.copyWith(
-        fontSize: 32,
+        fontSize: 34,
         fontWeight: FontWeight.w700,
         color: textPrimary,
         letterSpacing: -0.5,
+        height: 1.15,
       ),
       displayMedium: base.displayMedium?.copyWith(
-        fontSize: 26,
+        fontSize: 28,
         fontWeight: FontWeight.w700,
         color: textPrimary,
         letterSpacing: -0.3,
+        height: 1.2,
       ),
       headlineLarge: base.headlineLarge?.copyWith(
-        fontSize: 22,
-        fontWeight: FontWeight.w600,
+        fontSize: 24,
+        fontWeight: FontWeight.w700,
         color: textPrimary,
+        height: 1.25,
       ),
       headlineMedium: base.headlineMedium?.copyWith(
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        color: textPrimary,
+        height: 1.3,
+      ),
+      titleLarge: base.titleLarge?.copyWith(
         fontSize: 18,
         fontWeight: FontWeight.w600,
         color: textPrimary,
       ),
-      titleLarge: base.titleLarge?.copyWith(
+      titleMedium: base.titleMedium?.copyWith(
         fontSize: 16,
         fontWeight: FontWeight.w600,
         color: textPrimary,
       ),
-      titleMedium: base.titleMedium?.copyWith(
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
-        color: textPrimary,
-      ),
       bodyLarge: base.bodyLarge?.copyWith(
-        fontSize: 15,
+        fontSize: 17,
         fontWeight: FontWeight.w400,
         color: textPrimary,
+        height: 1.5,
       ),
       bodyMedium: base.bodyMedium?.copyWith(
-        fontSize: 13,
+        fontSize: 15,
         fontWeight: FontWeight.w400,
         color: textSecondary,
+        height: 1.5,
       ),
       labelLarge: base.labelLarge?.copyWith(
-        fontSize: 14,
+        fontSize: 16,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.3,
       ),
@@ -134,7 +140,7 @@ class AppTheme {
             borderRadius: BorderRadius.circular(16),
           ),
           textStyle: GoogleFonts.poppins(
-            fontSize: 15,
+            fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
         ),

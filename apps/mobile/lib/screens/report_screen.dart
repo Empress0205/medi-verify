@@ -54,11 +54,10 @@ class _ReportScreenState extends State<ReportScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.surface,
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          children: [
-            // ── Header ──────────────────────────────────────────────────────
+      // Pinned header + scrolling form below it (header stays put).
+      body: Column(
+        children: [
+            // ── Pinned Header ───────────────────────────────────────────────
             Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
@@ -74,59 +73,48 @@ class _ReportScreenState extends State<ReportScreen> {
               child: SafeArea(
                 bottom: false,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 36),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 20, 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Icon(
-                            Icons.arrow_back_ios_new_rounded,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.report_problem_rounded,
-                          color: Colors.white,
-                          size: 30,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Text(
-                        'Report Suspicious\nMedicine',
-                        style: Theme.of(context)
-                            .textTheme
-                            .displayMedium
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 26,
-                              height: 1.2,
+                      Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.arrow_back_ios_new_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
                             ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Report Suspicious Medicine',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headlineMedium
+                                  ?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       Text(
                         'Help protect others by reporting medicines that are not on the register or look suspicious.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.white.withOpacity(0.85),
-                              fontSize: 13,
+                              color: Colors.white.withOpacity(0.9),
                             ),
                       ),
                     ],
@@ -135,11 +123,12 @@ class _ReportScreenState extends State<ReportScreen> {
               ),
             ),
 
-            const SizedBox(height: 24),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Form(
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                  child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,7 +146,7 @@ class _ReportScreenState extends State<ReportScreen> {
                         Text(
                           'Auto-filled from your scan',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 13,
                             color: AppTheme.primary,
                             fontWeight: FontWeight.w500,
                           ),
@@ -210,7 +199,7 @@ class _ReportScreenState extends State<ReportScreen> {
                               child: Text(
                                 'No scan data found. Please scan a medicine first.',
                                 style: TextStyle(
-                                    fontSize: 13, color: AppTheme.textSecondary),
+                                    fontSize: 14, color: AppTheme.textSecondary),
                               ),
                             ),
                           ],
@@ -226,7 +215,7 @@ class _ReportScreenState extends State<ReportScreen> {
                     const Text(
                       'Tell us where you purchased this medicine.',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 14,
                         color: AppTheme.textSecondary,
                       ),
                     ),
@@ -274,7 +263,7 @@ class _ReportScreenState extends State<ReportScreen> {
                     const Text(
                       'Describe what makes this medicine look suspicious.',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 14,
                         color: AppTheme.textSecondary,
                       ),
                     ),
@@ -289,7 +278,7 @@ class _ReportScreenState extends State<ReportScreen> {
                         controller: _descCtrl,
                         maxLines: 5,
                         style: const TextStyle(
-                          fontSize: 14,
+                          fontSize: 16,
                           color: AppTheme.textPrimary,
                         ),
                         decoration: const InputDecoration(
@@ -297,7 +286,7 @@ class _ReportScreenState extends State<ReportScreen> {
                               'e.g., The packaging looks faded, the pills smell unusual, the seal was broken...',
                           hintStyle: TextStyle(
                             color: AppTheme.textLight,
-                            fontSize: 13,
+                            fontSize: 14,
                           ),
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,
@@ -332,7 +321,7 @@ class _ReportScreenState extends State<ReportScreen> {
                                   .bodyMedium
                                   ?.copyWith(
                                     color: AppTheme.warning,
-                                    fontSize: 12,
+                                    fontSize: 13,
                                     height: 1.5,
                                   ),
                             ),
@@ -368,7 +357,7 @@ class _ReportScreenState extends State<ReportScreen> {
                             : const Text(
                                 'Submit Report',
                                 style: TextStyle(
-                                  fontSize: 15,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
                                 ),
@@ -378,12 +367,13 @@ class _ReportScreenState extends State<ReportScreen> {
                     const SizedBox(height: 40),
                   ],
                 ),
+                ),
+                ),
               ),
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 
   void _submit() async {
@@ -453,7 +443,7 @@ class _ReportScreenState extends State<ReportScreen> {
       label,
       style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w700,
-            fontSize: 16,
+            fontSize: 17,
           ),
     );
   }
@@ -473,14 +463,14 @@ class _ReportScreenState extends State<ReportScreen> {
       ),
       child: TextFormField(
         controller: controller,
-        style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary),
+        style: const TextStyle(fontSize: 16, color: AppTheme.textPrimary),
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
           hintStyle:
-              const TextStyle(color: AppTheme.textLight, fontSize: 13),
+              const TextStyle(color: AppTheme.textLight, fontSize: 14),
           labelStyle: const TextStyle(
-              color: AppTheme.textSecondary, fontSize: 13),
+              color: AppTheme.textSecondary, fontSize: 14),
           prefixIcon: Icon(icon, color: AppTheme.primary, size: 20),
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
@@ -545,7 +535,7 @@ class _ReadOnlyInfoCard extends StatelessWidget {
                           Text(
                             item.label,
                             style: const TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               color: AppTheme.textSecondary,
                               fontWeight: FontWeight.w500,
                             ),
@@ -554,7 +544,7 @@ class _ReadOnlyInfoCard extends StatelessWidget {
                           Text(
                             item.value,
                             style: const TextStyle(
-                              fontSize: 14,
+                              fontSize: 15,
                               color: AppTheme.textPrimary,
                               fontWeight: FontWeight.w600,
                             ),
@@ -618,7 +608,7 @@ class _CategorySelector extends StatelessWidget {
               style: TextStyle(
                 color:
                     isSelected ? Colors.white : AppTheme.textSecondary,
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight:
                     isSelected ? FontWeight.w600 : FontWeight.w400,
               ),
@@ -695,7 +685,7 @@ class _SuccessScreen extends StatelessWidget {
                             'Report ID',
                             style: TextStyle(
                               color: AppTheme.primary,
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -704,7 +694,7 @@ class _SuccessScreen extends StatelessWidget {
                             style: const TextStyle(
                               color: AppTheme.primary,
                               fontWeight: FontWeight.w700,
-                              fontSize: 14,
+                              fontSize: 15,
                             ),
                           ),
                         ],

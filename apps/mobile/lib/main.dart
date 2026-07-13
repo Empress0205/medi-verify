@@ -5,6 +5,7 @@ import 'package:camera/camera.dart';
 
 import 'theme/app_theme.dart';
 import 'services/app_state.dart';
+import 'screens/splash_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'main_shell.dart';
 import 'screens/scan_screen.dart';
@@ -47,8 +48,9 @@ class MediVerifyApp extends StatelessWidget {
         title: 'MediVerify',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
-        initialRoute: '/onboarding',
+        initialRoute: '/splash',
         routes: {
+          '/splash': (_) => const SplashScreen(),
           '/onboarding': (_) => const OnboardingScreen(),
           '/main': (_) => const MainShell(),
 

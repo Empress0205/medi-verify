@@ -99,7 +99,7 @@ class _StatItem extends StatelessWidget {
           style: Theme.of(context).textTheme.displayMedium?.copyWith(
                 color: color,
                 fontWeight: FontWeight.w700,
-                fontSize: 28,
+                fontSize: 30,
               ),
         ),
         const SizedBox(height: 2),
@@ -107,7 +107,7 @@ class _StatItem extends StatelessWidget {
           label,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: AppTheme.textSecondary,
-                fontSize: 12,
+                fontSize: 13,
               ),
         ),
       ],
@@ -164,17 +164,14 @@ class QuickActionCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                        ),
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 3),
                   Text(
                     subtitle,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppTheme.textSecondary,
-                          fontSize: 13,
+                          fontSize: 14,
                         ),
                   ),
                 ],
@@ -243,14 +240,14 @@ class StatusBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: text, size: large ? 18 : 13),
+          Icon(icon, color: text, size: large ? 18 : 14),
           const SizedBox(width: 5),
           Text(
             label,
             style: TextStyle(
               color: text,
               fontWeight: FontWeight.w600,
-              fontSize: large ? 14 : 12,
+              fontSize: large ? 15 : 13,
             ),
           ),
         ],
@@ -300,10 +297,7 @@ class ScanHistoryTile extends StatelessWidget {
                 children: [
                   Text(
                     record.medicineName,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
+                    style: Theme.of(context).textTheme.titleMedium,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -311,15 +305,17 @@ class ScanHistoryTile extends StatelessWidget {
                   Text(
                     record.manufacturer,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontSize: 12,
+                          fontSize: 13,
                           color: AppTheme.textSecondary,
                         ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
                     _timeAgo(record.scannedAt),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontSize: 11,
+                          fontSize: 12,
                           color: AppTheme.textLight,
                         ),
                   ),
@@ -477,7 +473,7 @@ class _NavItem extends StatelessWidget {
               label,
               style: TextStyle(
                 color: selected ? AppTheme.primary : AppTheme.textLight,
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
               ),
             ),

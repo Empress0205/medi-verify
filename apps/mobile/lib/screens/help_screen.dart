@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 
 class HelpScreen extends StatelessWidget {
   const HelpScreen({super.key});
@@ -7,22 +8,22 @@ class HelpScreen extends StatelessWidget {
     {
       'title': 'Prepare the Medicine',
       'description':
-          'Ensure the medicine packaging is clean and all labels are visible.',
+          'Make sure the packaging is clean and the printed label is fully visible.',
     },
     {
       'title': 'Take a Clear Photo',
       'description':
-          'Use good lighting and ensure the entire packaging is visible in the frame.',
+          'Use good lighting and fit the whole label or box inside the frame.',
     },
     {
-      'title': 'AI Analysis',
+      'title': 'Automatic Check',
       'description':
-          'Our AI will analyze the packaging, extract text, and verify against our database.',
+          'The app reads the label and checks it against the TMDA register of approved products.',
     },
     {
-      'title': 'Review Results',
+      'title': 'Review the Result',
       'description':
-          'Check the verification status and follow the recommended actions.',
+          'See whether the product is on the register and follow the recommended action.',
     },
   ];
 
@@ -30,393 +31,374 @@ class HelpScreen extends StatelessWidget {
     {
       'label': 'Registered',
       'description':
-          'The product matches a record on the TMDA register. Registration confirms approval — still check packaging condition and expiry before use.',
-      'color': Color(0xFF16A34A),
-      'bgColor': Color(0xFFDCFCE7),
-      'borderColor': Color(0xFFBBF7D0),
-      'icon': Icons.check_circle_outline,
+          'The product matches a record on the TMDA register. Registration confirms approval — still check the packaging condition and expiry before use.',
+      'color': AppTheme.success,
+      'icon': Icons.verified_rounded,
     },
     {
       'label': 'Not on register',
       'description':
           'No matching product was found on the TMDA register. This does not prove it is fake — but do not use it until confirmed, and please report it.',
-      'color': Color(0xFFD97706),
-      'bgColor': Color(0xFFFEF9C3),
-      'borderColor': Color(0xFFFDE68A),
-      'icon': Icons.search_off_outlined,
+      'color': AppTheme.warning,
+      'icon': Icons.search_off_rounded,
     },
     {
       'label': 'Unknown',
       'description':
           'The check could not be completed (unclear photo or unreadable label). Retake the photo or consult a pharmacist.',
-      'color': Color(0xFF64748B),
-      'bgColor': Color(0xFFF1F5F9),
-      'borderColor': Color(0xFFE2E8F0),
-      'icon': Icons.help_outline,
+      'color': AppTheme.textSecondary,
+      'icon': Icons.help_rounded,
     },
   ];
 
   static const List<String> _reportingSteps = [
-    'Use the "Report Suspicious Drug" feature',
+    'Use the "Report Suspicious Medicine" feature',
     'Provide clear photos and detailed information',
-    'Include location where the medicine was purchased',
+    'Include where the medicine was purchased',
     'Do not consume the medicine',
   ];
 
   static const List<String> _bestPractices = [
-    'Always purchase medicines from licensed pharmacies',
+    'Always buy medicines from licensed pharmacies',
     'Check expiry dates before purchasing',
     'Look for proper seals and packaging quality',
     'Be wary of unusually cheap prices',
     'Verify batch numbers and manufacturer details',
   ];
 
-  // ── Brand colours ──────────────────────────────────────────────────────────
-  static const Color _primary = Color(0xFF4F46E5);
-  static const Color _bgPage = Color(0xFFEEF2FF);
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgPage,
-      appBar: AppBar(
-        backgroundColor: _bgPage,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.of(context).maybePop(),
-        ),
-        title: const Text(
-          'Help & Instructions',
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      backgroundColor: AppTheme.surface,
+      body: Column(
         children: [
-          // ── Welcome card ──────────────────────────────────────────────────
-          _Card(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: _primary,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(Icons.shield_outlined,
-                      color: Colors.white, size: 28),
+          // ── Pinned header (matches the rest of the app) ───────────────────
+          Container(
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: AppTheme.headerGradient,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(28),
+                bottomRight: Radius.circular(28),
+              ),
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 20, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        if (Navigator.canPop(context)) ...[
+                          GestureDetector(
+                            onTap: () => Navigator.of(context).maybePop(),
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.arrow_back_ios_new_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        Text(
+                          'Help & Guide',
+                          style:
+                              Theme.of(context).textTheme.headlineLarge?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'How to use MediVerify and understand your results',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.white.withOpacity(0.9),
+                          ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 14),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Welcome to MediVerify',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      SizedBox(height: 6),
-                      Text(
-                        'MediVerify reads your medicine\'s packaging and checks it against the TMDA register of approved products, helping you spot medicines that may not be legitimate.',
-                        style:
-                            TextStyle(fontSize: 13, color: Colors.black54),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
 
-          const SizedBox(height: 24),
-
-          // ── How to Scan ───────────────────────────────────────────────────
-          const _SectionHeader(
-            icon: Icons.camera_alt_outlined,
-            label: 'How to Scan Medicine',
-          ),
-          const SizedBox(height: 12),
-          _Card(
-            child: Column(
-              children: List.generate(_steps.length, (i) {
-                final step = _steps[i];
-                final isLast = i == _steps.length - 1;
-                return Padding(
-                  padding: EdgeInsets.only(bottom: isLast ? 0 : 20),
+          // ── Scrolling content ─────────────────────────────────────────────
+          Expanded(
+            child: ListView(
+              physics: const ClampingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+              children: [
+                // Welcome card
+                _Card(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      CircleAvatar(
-                        radius: 16,
-                        backgroundColor: _primary,
-                        child: Text(
-                          '${i + 1}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary,
+                          borderRadius: BorderRadius.circular(14),
                         ),
+                        child: const Icon(Icons.shield_rounded,
+                            color: Colors.white, size: 28),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              step['title']!,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 14),
+                              'Welcome to MediVerify',
+                              style: Theme.of(context).textTheme.titleLarge,
                             ),
-                            const SizedBox(height: 3),
+                            const SizedBox(height: 6),
                             Text(
-                              step['description']!,
-                              style: const TextStyle(
-                                  fontSize: 13, color: Colors.black54),
+                              'MediVerify reads your medicine\'s packaging and checks it against the TMDA register of approved products, helping you spot medicines that may not be legitimate.',
+                              style: Theme.of(context).textTheme.bodyMedium,
                             ),
                           ],
                         ),
                       ),
                     ],
                   ),
-                );
-              }),
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // ── Understanding Results ─────────────────────────────────────────
-          const _SectionHeader(
-            icon: Icons.description_outlined,
-            label: 'Understanding Verification Results',
-          ),
-          const SizedBox(height: 12),
-          ..._results.map(
-            (r) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: r['bgColor'] as Color,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: r['borderColor'] as Color),
                 ),
-                padding: const EdgeInsets.all(14),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(r['icon'] as IconData,
-                        color: r['color'] as Color, size: 24),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
+
+                const SizedBox(height: 24),
+                _SectionHeader(
+                    icon: Icons.camera_alt_rounded,
+                    label: 'How to Scan Medicine'),
+                const SizedBox(height: 12),
+                _Card(
+                  child: Column(
+                    children: List.generate(_steps.length, (i) {
+                      final step = _steps[i];
+                      final isLast = i == _steps.length - 1;
+                      return Padding(
+                        padding: EdgeInsets.only(bottom: isLast ? 0 : 18),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 32,
+                              height: 32,
+                              alignment: Alignment.center,
+                              decoration: const BoxDecoration(
+                                color: AppTheme.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Text(
+                                '${i + 1}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(step['title']!,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium),
+                                  const SizedBox(height: 3),
+                                  Text(step['description']!,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+                _SectionHeader(
+                    icon: Icons.fact_check_rounded,
+                    label: 'Understanding Your Results'),
+                const SizedBox(height: 12),
+                ..._results.map(
+                  (r) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: (r['color'] as Color).withOpacity(0.10),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                            color: (r['color'] as Color).withOpacity(0.25)),
+                      ),
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            r['label'] as String,
-                            style: TextStyle(
-                              color: r['color'] as Color,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
+                          Icon(r['icon'] as IconData,
+                              color: r['color'] as Color, size: 24),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  r['label'] as String,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(color: r['color'] as Color),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(r['description'] as String,
+                                    style:
+                                        Theme.of(context).textTheme.bodyMedium),
+                              ],
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            r['description'] as String,
-                            style: const TextStyle(
-                                fontSize: 13, color: Colors.black54),
                           ),
                         ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-          ),
 
-          const SizedBox(height: 24),
+                const SizedBox(height: 12),
+                // Reporting card
+                _Card(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.report_problem_rounded,
+                              color: AppTheme.danger, size: 22),
+                          const SizedBox(width: 8),
+                          Text('Reporting Suspicious Medicines',
+                              style: Theme.of(context).textTheme.titleMedium),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'If you find a suspicious medicine or one that is not on the register:',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 10),
+                      ..._reportingSteps.map((s) => _Bullet(text: s)),
+                    ],
+                  ),
+                ),
 
-          // ── Reporting suspicious medicines ────────────────────────────────
-          _Card(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    Icon(Icons.warning_amber_outlined,
-                        color: Color(0xFFDC2626), size: 20),
-                    SizedBox(width: 8),
-                    Text(
-                      'Reporting Suspicious Medicines',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'If you encounter suspicious or counterfeit medicine:',
-                  style: TextStyle(fontSize: 13, color: Colors.black54),
-                ),
-                const SizedBox(height: 10),
-                ..._reportingSteps.map(
-                  (s) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.only(top: 5),
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            color: Colors.black45,
-                            shape: BoxShape.circle,
+                const SizedBox(height: 16),
+                // Best practices
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryLight,
+                    borderRadius: BorderRadius.circular(16),
+                    border:
+                        Border.all(color: AppTheme.primary.withOpacity(0.20)),
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.lightbulb_rounded,
+                              color: AppTheme.primary, size: 22),
+                          const SizedBox(width: 8),
+                          Text('Best Practices',
+                              style: Theme.of(context).textTheme.titleMedium),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ..._bestPractices.map(
+                        (p) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.check_circle_rounded,
+                                  color: AppTheme.primary, size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(p,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(color: AppTheme.textPrimary)),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(s,
-                              style: const TextStyle(
-                                  fontSize: 13, color: Colors.black87)),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
 
-          const SizedBox(height: 16),
-
-          // ── Best Practices ────────────────────────────────────────────────
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFFEFCE8),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFFDE68A)),
-            ),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    Icon(Icons.lightbulb_outline,
-                        color: Color(0xFFD97706), size: 20),
-                    SizedBox(width: 8),
-                    Text(
-                      'Best Practices',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
-                  ],
-                ),
+                const SizedBox(height: 24),
+                _SectionHeader(
+                    icon: Icons.verified_user_rounded,
+                    label: 'Official TMDA Channels'),
                 const SizedBox(height: 12),
-                ..._bestPractices.map(
-                  (p) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          '✓  ',
-                          style: TextStyle(
-                              color: Color(0xFFD97706),
-                              fontWeight: FontWeight.bold),
-                        ),
-                        Expanded(
-                          child: Text(p,
-                              style: const TextStyle(fontSize: 13)),
-                        ),
-                      ],
-                    ),
+                _Card(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'The Tanzania Medicines and Medical Devices Authority (TMDA) regulates medicines and receives reports of suspicious products.',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 14),
+                      const _ContactTile(
+                        icon: Icons.public_rounded,
+                        label: 'Website',
+                        value: 'www.tmda.go.tz',
+                      ),
+                      const SizedBox(height: 10),
+                      const _ContactTile(
+                        icon: Icons.email_rounded,
+                        label: 'Email',
+                        value: 'info@tmda.go.tz',
+                      ),
+                      const SizedBox(height: 10),
+                      const _ContactTile(
+                        icon: Icons.phone_rounded,
+                        label: 'Toll-free',
+                        value: '0800 110 084',
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
 
-          const SizedBox(height: 24),
-
-          // ── Need More Help ────────────────────────────────────────────────
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFEEF2FF),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFC7D2FE)),
-            ),
-            padding: const EdgeInsets.all(16),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.people_outline, color: _primary, size: 22),
-                    SizedBox(width: 8),
-                    Text(
-                      'Need More Help?',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16),
+                if (Navigator.canPop(context)) ...[
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => Navigator.of(context).maybePop(),
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      label: const Text('Back'),
                     ),
-                  ],
-                ),
-                SizedBox(height: 6),
-                Text(
-                  'Our support team is here to assist you with any questions or concerns.',
-                  style: TextStyle(fontSize: 13, color: Colors.black54),
-                ),
-                SizedBox(height: 14),
-                _ContactTile(
-                  icon: Icons.email_outlined,
-                  label: 'Email',
-                  value: 'support@mediverify.org',
-                ),
-                SizedBox(height: 10),
-                _ContactTile(
-                  icon: Icons.phone_outlined,
-                  label: 'Hotline',
-                  value: '+255 123 456 789',
-                ),
+                  ),
+                ],
               ],
             ),
           ),
-
-          const SizedBox(height: 24),
-
-          // ── Back to Home button ───────────────────────────────────────────
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () => Navigator.of(context).maybePop(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                elevation: 0,
-              ),
-              child: const Text(
-                'Back to Home',
-                style:
-                    TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 32),
         ],
       ),
     );
@@ -424,7 +406,6 @@ class HelpScreen extends StatelessWidget {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
 class _Card extends StatelessWidget {
   final Widget child;
   const _Card({required this.child});
@@ -434,15 +415,9 @@ class _Card extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: AppTheme.cardBg,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: AppTheme.cardShadow,
       ),
       padding: const EdgeInsets.all(16),
       child: child,
@@ -459,17 +434,44 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, color: const Color(0xFF4F46E5), size: 20),
+        Icon(icon, color: AppTheme.primary, size: 22),
         const SizedBox(width: 8),
-        Text(
-          label,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: Colors.black87,
-          ),
-        ),
+        Text(label, style: Theme.of(context).textTheme.headlineMedium),
       ],
+    );
+  }
+}
+
+class _Bullet extends StatelessWidget {
+  final String text;
+  const _Bullet({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            width: 6,
+            height: 6,
+            decoration: const BoxDecoration(
+              color: AppTheme.primary,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(text,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: AppTheme.textPrimary)),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -485,37 +487,36 @@ class _ContactTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE0E7FF)),
+        border: Border.all(color: AppTheme.divider),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: 38,
+            height: 38,
             decoration: BoxDecoration(
-              color: const Color(0xFFEEF2FF),
+              color: AppTheme.primaryLight,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: const Color(0xFF4F46E5), size: 18),
+            child: Icon(icon, color: AppTheme.primary, size: 20),
           ),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label,
-                  style: const TextStyle(
-                      fontSize: 11, color: Colors.black45)),
-              Text(
-                value,
-                style: const TextStyle(
-                  color: Color(0xFF4F46E5),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
-              ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary,
+                      )),
+              Text(value,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppTheme.primary,
+                        fontSize: 15,
+                      )),
             ],
           ),
         ],

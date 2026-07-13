@@ -175,8 +175,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
             child: filtered.isEmpty
                 ? _EmptyState(filter: _filter)
                 : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                    physics: const ClampingScrollPhysics(),
                     itemCount: filtered.length,
                     itemBuilder: (_, i) => ScanHistoryTile(
                       record: filtered[i],

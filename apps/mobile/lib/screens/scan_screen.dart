@@ -23,11 +23,11 @@ class _ScanScreenState extends State<ScanScreen>
   // ── Camera ─────────────────────────────────────────────────────────────────
   CameraController? _cameraController;
   bool _isCameraReady = false;
+  bool _isFlashOn = false;
 
   // ── Scan State ─────────────────────────────────────────────────────────────
   _ScanMode _mode = _ScanMode.idle;
   File? _capturedImage;
-  bool _isSending = false;
   String _statusMessage = 'Choose how to scan your medicine';
 
   // ── Animation ──────────────────────────────────────────────────────────────
@@ -141,9 +141,18 @@ class _ScanScreenState extends State<ScanScreen>
   Future<void> _sendToBackend(File imageFile) async {
     setState(() {
       _capturedImage = imageFile;
-      _isSending = true;
       _mode = _ScanMode.analyzing;
-      _statusMessage = 'Checking the TMDA register...';
+      _statusMessage = 'Checking the TMDA register…';
+    });
+
+    // Free-tier backends sleep when idle; the first request has to cold-start.
+    // If we're still waiting after a few seconds, explain why so it doesn't
+    // look frozen.
+    Future.delayed(const Duration(seconds: 7), () {
+      if (mounted && _mode == _ScanMode.analyzing) {
+        setState(() => _statusMessage =
+            'Waking up the server — the first scan can take up to a minute…');
+      }
     });
 
     final record = await VerificationService.verify(imageFile);
@@ -301,7 +310,7 @@ class _ScanScreenState extends State<ScanScreen>
       setState(() {
         _mode = _ScanMode.idle;
         _isCameraReady = false;
-        _isSending = false;
+        _isFlashOn = false;
         _capturedImage = null;
         _statusMessage = 'Choose how to scan your medicine';
       });
@@ -409,9 +418,14 @@ class _ScanScreenState extends State<ScanScreen>
           const Spacer(),
           if (_mode == _ScanMode.liveCamera && _isCameraReady)
             _GlassButton(
-              icon: Icons.flash_off_rounded,
+              icon: _isFlashOn
+                  ? Icons.flash_on_rounded
+                  : Icons.flash_off_rounded,
               onTap: () async {
-                await _cameraController?.setFlashMode(FlashMode.torch);
+                final next = !_isFlashOn;
+                await _cameraController
+                    ?.setFlashMode(next ? FlashMode.torch : FlashMode.off);
+                if (mounted) setState(() => _isFlashOn = next);
               },
             ),
         ],

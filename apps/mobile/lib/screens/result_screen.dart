@@ -60,7 +60,7 @@ class ResultScreen extends StatelessWidget {
       body: Stack(
         children: [
           SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
+            physics: const ClampingScrollPhysics(),
             child: Column(
               children: [
                 // ── Result Header ────────────────────────────────────────

@@ -89,6 +89,3 @@ class ScanRecord {
     }
   }
 }
-
-// No seeded demo data — history is populated by real scans this session.
-List<ScanRecord> sampleScanHistory = [];
