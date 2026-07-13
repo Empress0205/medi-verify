@@ -4,6 +4,7 @@ import '../../theme/app_theme.dart';
 import '../../services/app_state.dart';
 import '../../models/scan_record.dart';
 import '../../widgets/shared_widgets.dart';
+import 'scan_screen.dart' show ScanResume;
 
 /// How a result is presented, chosen by the backend's `severity`.
 ///
@@ -128,6 +129,15 @@ class ResultScreen extends StatelessWidget {
     // When the headline is about expiry, the registration result would
     // otherwise vanish — keep it visible as a secondary fact.
     final showRegisteredChip = isRegistered && record.severity != 'ok';
+
+    // We could not read an expiry date. The copy tells the user to photograph
+    // another panel, so there has to be a button that actually does it — and it
+    // must ADD to the photos already taken, not start a fresh scan and throw
+    // them away.
+    final canAddPhoto = record.isExpiryUnknown &&
+        record.status != VerificationStatus.notMedicine &&
+        record.photoPaths.isNotEmpty &&
+        record.photoPaths.length < kMaxScanPhotos;
 
     return Scaffold(
       backgroundColor: AppTheme.surface,
@@ -306,6 +316,27 @@ class ResultScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     children: [
+                      // Completing the check beats reporting an incomplete one,
+                      // so this comes first when the expiry is still unread.
+                      if (canAddPhoto) ...[
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            onPressed: () => Navigator.pushReplacementNamed(
+                              context,
+                              '/scan',
+                              arguments: ScanResume(record.photoPaths),
+                            ),
+                            icon: const Icon(Icons.add_a_photo_rounded),
+                            label: const Text('Photograph the other side'),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       // Reportable covers not-found AND expired/lapsed results —
                       // selling an expired medicine is itself reportable.
                       if (record.reportable)
@@ -389,7 +420,7 @@ class _DetailsCard extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
               ),
-              StatusBadge(status: record.status),
+              VerdictBadge(record: record),
             ],
           ),
           const SizedBox(height: 16),

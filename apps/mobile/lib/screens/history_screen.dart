@@ -17,7 +17,24 @@ class _HistoryScreenState extends State<HistoryScreen> {
   String _searchQuery = '';
   final _searchCtrl = TextEditingController();
 
-  final _filters = ['All', 'Registered', 'Not found', 'Unknown'];
+  // Filters group by VERDICT, so "Registered" means "on the register AND in
+  // date". An expired pack lives under "Expired" even though it matched the
+  // register — filtering it into "Registered" would hide exactly the scans the
+  // user most needs to find again.
+  static const _filters = <String, Set<ScanVerdict>>{
+    'All': {},
+    'Registered': {ScanVerdict.registered, ScanVerdict.expiringSoon},
+    'Expired': {ScanVerdict.expired, ScanVerdict.lapsed},
+    'Check expiry': {ScanVerdict.checkExpiry},
+    'Not on register': {ScanVerdict.notFound},
+    'Not a medicine': {ScanVerdict.notMedicine},
+  };
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -92,6 +109,25 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             ),
                           ),
                         ),
+                        if (state.history.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: _confirmClear,
+                            child: Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.delete_outline_rounded,
+                                color: Colors.white,
+                                size: 19,
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -139,17 +175,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: _filters
-                    .map((f) => Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: _FilterChip(
-                            label: f,
-                            selected: _filter == f,
-                            onTap: () => setState(() => _filter = f),
-                            count: _countForFilter(state.history, f),
-                          ),
-                        ))
-                    .toList(),
+                children: [
+                  for (final f in _filters.keys)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: _FilterChip(
+                        label: f,
+                        selected: _filter == f,
+                        onTap: () => setState(() => _filter = f),
+                        count: _countForFilter(state.history, f),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
@@ -195,20 +232,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
   List<ScanRecord> _applyFilter(List<ScanRecord> records) {
     var list = records;
     if (_filter != 'All') {
-      final statusMap = {
-        'Registered': VerificationStatus.registered,
-        'Not found': VerificationStatus.notFound,
-        'Unknown': VerificationStatus.unknown,
-      };
-      list = list.where((r) => r.status == statusMap[_filter]).toList();
+      final verdicts = _filters[_filter]!;
+      list = list.where((r) => verdicts.contains(r.verdict)).toList();
     }
     if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
       list = list
           .where((r) =>
-              r.medicineName
-                  .toLowerCase()
-                  .contains(_searchQuery.toLowerCase()) ||
-              r.manufacturer.toLowerCase().contains(_searchQuery.toLowerCase()))
+              r.medicineName.toLowerCase().contains(q) ||
+              r.manufacturer.toLowerCase().contains(q))
           .toList();
     }
     return list;
@@ -216,12 +248,50 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   int _countForFilter(List<ScanRecord> records, String filter) {
     if (filter == 'All') return records.length;
-    final statusMap = {
-      'Registered': VerificationStatus.registered,
-      'Not found': VerificationStatus.notFound,
-      'Unknown': VerificationStatus.unknown,
-    };
-    return records.where((r) => r.status == statusMap[filter]).length;
+    final verdicts = _filters[filter]!;
+    return records.where((r) => verdicts.contains(r.verdict)).length;
+  }
+
+  /// Clear-history had the logic but no button. Photos and results are personal
+  /// — the user has to be able to wipe them, and it must be deliberate.
+  Future<void> _confirmClear() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Clear scan history?'),
+        content: const Text(
+          'This deletes every scan on this phone. Reports you have already '
+          'submitted to TMDA are not affected.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel',
+                style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Clear',
+                style: TextStyle(
+                    color: AppTheme.danger, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true || !mounted) return;
+    await context.read<AppState>().clearHistory();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        content: const Text('Scan history cleared'),
+      ),
+    );
   }
 }
 
@@ -311,7 +381,7 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            filter == 'All' ? 'No scans yet' : 'No $filter medicines',
+            filter == 'All' ? 'No scans yet' : 'Nothing here',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: AppTheme.textPrimary,
                   fontWeight: FontWeight.w600,
@@ -321,7 +391,7 @@ class _EmptyState extends StatelessWidget {
           Text(
             filter == 'All'
                 ? 'Start scanning medicines to see\nyour history here'
-                : 'No medicines with this status\nin your scan history',
+                : 'No scans match "$filter"',
             textAlign: TextAlign.center,
             style: Theme.of(context)
                 .textTheme

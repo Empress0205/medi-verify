@@ -9,6 +9,14 @@ import '../../services/app_state.dart';
 import '../../services/verfication_service.dart';
 import '../../models/scan_record.dart';
 
+/// Route argument for /scan: continue an existing pack instead of starting a
+/// new one. Sent by the result screen when the expiry could not be read, so the
+/// next photo is ADDED to the panels already taken rather than replacing them.
+class ScanResume {
+  final List<String> photoPaths;
+  const ScanResume(this.photoPaths);
+}
+
 class ScanScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
   const ScanScreen({super.key, required this.cameras});
@@ -34,7 +42,10 @@ class _ScanScreenState extends State<ScanScreen>
   /// The registration number and the expiry usually live on a different panel
   /// from the brand name, so one photo of the front is often not enough.
   final List<File> _photos = [];
-  static const _maxPhotos = 3;
+  static const _maxPhotos = kMaxScanPhotos;
+
+  /// Route arguments are read once, on the first didChangeDependencies.
+  bool _argsRead = false;
 
   // ── Animation ──────────────────────────────────────────────────────────────
   late AnimationController _animController;
@@ -53,6 +64,32 @@ class _ScanScreenState extends State<ScanScreen>
     _scanLineAnim = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
     );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_argsRead) return;
+    _argsRead = true;
+
+    // Continuing a pack from the result screen: seed the photos we already have
+    // so the next one is added to them. Files that no longer exist (the OS can
+    // clear the camera cache) are dropped rather than sent as empty parts.
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is ScanResume) {
+      final existing = args.photoPaths
+          .map(File.new)
+          .where((f) => f.existsSync())
+          .toList();
+      if (existing.isNotEmpty) {
+        setState(() {
+          _photos.addAll(existing);
+          _statusMessage =
+              'Photograph the side or back of the SAME pack — that is where the '
+              'expiry date is usually printed.';
+        });
+      }
+    }
   }
 
   @override
@@ -142,9 +179,120 @@ class _ScanScreenState extends State<ScanScreen>
   }
 
   // ────────────────────────────────────────────────────────────────────────────
+  //  Privacy consent — shown once, BEFORE the first photo ever leaves the phone
+  // ────────────────────────────────────────────────────────────────────────────
+  /// Returns true if the scan may proceed.
+  ///
+  /// A photo of a medicine pack goes to our server and on to Google's Gemini to
+  /// be read. That is a third party receiving user data, and the user has to be
+  /// told before it happens — not in a policy page nobody opens.
+  Future<bool> _ensurePrivacyAccepted() async {
+    final state = context.read<AppState>();
+    if (state.privacyAccepted) return true;
+
+    final accepted = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
+      builder: (sheetCtx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryLight,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(Icons.privacy_tip_rounded,
+                      color: AppTheme.primary, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Before your first scan',
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            const _PrivacyPoint(
+              icon: Icons.cloud_upload_rounded,
+              text:
+                  'Your photo is sent to our server and read by Google Gemini, '
+                  'an AI service, to pull the name and registration number off '
+                  'the pack.',
+            ),
+            const SizedBox(height: 12),
+            const _PrivacyPoint(
+              icon: Icons.phone_android_rounded,
+              text:
+                  'Your scan history stays on this phone. You can clear it any '
+                  'time from the History screen.',
+            ),
+            const SizedBox(height: 12),
+            const _PrivacyPoint(
+              icon: Icons.local_pharmacy_rounded,
+              text:
+                  'If you submit a report, the pharmacy details you type are '
+                  'shared with TMDA reviewers. Nothing else is.',
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(sheetCtx, true),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                ),
+                child: const Text('I understand — scan'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () => Navigator.pop(sheetCtx, false),
+                child: const Text('Not now',
+                    style: TextStyle(color: AppTheme.textSecondary)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (accepted == true) {
+      await state.acceptPrivacy();
+      return true;
+    }
+    return false;
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
   //  Send to Backend
   // ────────────────────────────────────────────────────────────────────────────
   Future<void> _sendToBackend(File imageFile) async {
+    if (!await _ensurePrivacyAccepted()) {
+      if (mounted) {
+        setState(() => _statusMessage = 'Choose how to scan your medicine');
+      }
+      return;
+    }
+    if (!mounted) return;
+
     _photos.add(imageFile);
 
     setState(() {
@@ -529,6 +677,10 @@ class _ScanScreenState extends State<ScanScreen>
                 _buildTopBar(),
                 const SizedBox(height: 12),
                 _buildStatusChip(),
+                if (_photos.isNotEmpty && _mode == _ScanMode.idle) ...[
+                  const SizedBox(height: 10),
+                  _buildPackChip(),
+                ],
                 const Spacer(),
                 _buildFrame(),
                 const Spacer(),
@@ -622,6 +774,50 @@ class _ScanScreenState extends State<ScanScreen>
             height: 1.4,
           ),
         ),
+      ),
+    );
+  }
+
+  // ── Pack Chip ──────────────────────────────────────────────────────────────
+  // Photos accumulate across the adaptive loop, which is otherwise invisible
+  // state: without this the user can't tell that the next shot JOINS the pack
+  // rather than replacing it, and "start over" has nowhere to live.
+  Widget _buildPackChip() {
+    final n = _photos.length;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 32),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppTheme.primary.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(50),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.photo_library_rounded,
+              color: Colors.white, size: 15),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              '$n photo${n == 1 ? '' : 's'} of this pack — the next one is added to them',
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+            ),
+          ),
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: _reset,
+            child: const Text(
+              'Start over',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                decoration: TextDecoration.underline,
+                decorationColor: Colors.white,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -900,6 +1096,34 @@ class _ScanScreenState extends State<ScanScreen>
 // ────────────────────────────────────────────────────────────────────────────────
 
 enum _ScanMode { idle, liveCamera, analyzing }
+
+// ── Privacy Point ──────────────────────────────────────────────────────────────
+class _PrivacyPoint extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  const _PrivacyPoint({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 19, color: AppTheme.primary),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.textSecondary,
+                  height: 1.45,
+                  fontSize: 14,
+                ),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 // ── Tip Row ────────────────────────────────────────────────────────────────────
 class _TipRow extends StatelessWidget {

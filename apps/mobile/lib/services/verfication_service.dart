@@ -63,11 +63,14 @@ class VerificationService {
     }
 
     final data = result.data!;
-    return ScanOutcome(_mapToScanRecord(data), data.capture);
+    return ScanOutcome(_mapToScanRecord(data, imageFiles), data.capture);
   }
 
   // ─── Map API Response → ScanRecord ────────────────────────────────────────
-  static ScanRecord _mapToScanRecord(VerifyApiResponse response) {
+  static ScanRecord _mapToScanRecord(
+    VerifyApiResponse response,
+    List<File> photos,
+  ) {
     // Map backend status string to app enum
     VerificationStatus status;
     switch (response.status.toLowerCase()) {
@@ -111,8 +114,13 @@ class VerificationService {
       safetyHeadline: safety?.headline,
       safetyDetail: safety?.detail,
       expiryStatus: safety?.expiryStatus ?? 'unknown',
+      registrationValidity: safety?.registrationValidity ?? 'unknown',
       registrationExpiry: safety?.registrationExpiry ?? info?.registrationExpiry,
       reportable: safety?.reportable ?? (status == VerificationStatus.notFound),
+      // Kept so the result screen can add a panel to this pack instead of
+      // discarding the photos and starting a new scan.
+      photoPaths: photos.map((f) => f.path).toList(),
+      imagePath: photos.isNotEmpty ? photos.first.path : null,
     );
   }
 

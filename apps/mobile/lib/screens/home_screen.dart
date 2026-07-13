@@ -29,7 +29,7 @@ class HomeScreen extends StatelessWidget {
                   StatsCard(
                     scans: state.totalScans,
                     registered: state.registeredCount,
-                    notFound: state.notFoundCount,
+                    needsAttention: state.needsAttentionCount,
                   ),
 
                   const SizedBox(height: 20),

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
+import '../../models/scan_record.dart';
 import '../../services/app_state.dart';
 import '../../services/api_service.dart';
+import '../../widgets/shared_widgets.dart';
 
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
@@ -33,8 +35,31 @@ class _ReportScreenState extends State<ReportScreen> {
     'Incorrect Dosage',
     'Suspicious Source',
     'Expired Medicine',
+    'Not on TMDA register',
     'Other',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // The app already knows WHY this medicine is being reported — the scan told
+    // us. Making the user pick the category again invites the wrong one and
+    // loses the finding, so start from the verdict.
+    final record = context.read<AppState>().lastScan;
+    if (record == null) return;
+
+    switch (record.verdict) {
+      case ScanVerdict.expired:
+        _selectedCategory = 'Expired Medicine';
+        break;
+      case ScanVerdict.lapsed:
+      case ScanVerdict.notFound:
+        _selectedCategory = 'Not on TMDA register';
+        break;
+      default:
+        break; // leave the default; nothing in the scan points anywhere.
+    }
+  }
 
   @override
   void dispose() {
@@ -156,6 +181,11 @@ class _ReportScreenState extends State<ReportScreen> {
                     const SizedBox(height: 12),
 
                     if (record != null) ...[
+                      // What the scan actually found. Without this the reviewer
+                      // only sees free text, and the user has to re-type a
+                      // finding the app already established.
+                      _ScanFindingCard(record: record),
+                      const SizedBox(height: 12),
                       _ReadOnlyInfoCard(
                         items: [
                           _InfoItem(
@@ -398,6 +428,17 @@ class _ReportScreenState extends State<ReportScreen> {
     setState(() => _isLoading = true);
 
     final record = context.read<AppState>().lastScan;
+
+    // Send the scan's own finding along with the user's words. The reviewer
+    // needs to know the app read an expiry date off the pack — that is evidence,
+    // and it should not depend on the user remembering to type it.
+    final finding = record?.safetyHeadline;
+    final description = [
+      if (finding != null && finding.isNotEmpty) 'Scan finding: $finding',
+      if (record?.regNo != null) 'TMDA reg. no. read: ${record!.regNo}',
+      if (_descCtrl.text.trim().isNotEmpty) _descCtrl.text.trim(),
+    ].join('\n');
+
     try {
       final code = await ApiService.submitReport(
         scanId: record?.serverScanId,
@@ -412,7 +453,7 @@ class _ReportScreenState extends State<ReportScreen> {
             ? _regionCtrl.text.trim()
             : _pharmacyCtrl.text.trim(),
         category: _selectedCategory,
-        description: _descCtrl.text.trim(),
+        description: description,
       );
       if (!mounted) return;
       setState(() {
@@ -478,6 +519,76 @@ class _ReportScreenState extends State<ReportScreen> {
           contentPadding:
               const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         ),
+      ),
+    );
+  }
+}
+
+// ── What the scan found ────────────────────────────────────────────────────────
+/// Carries the safety verdict into the report, in the same colours the result
+/// screen used, so the user can see the app is reporting what it told them —
+/// and TMDA gets the finding, not just a free-text description of it.
+class _ScanFindingCard extends StatelessWidget {
+  final ScanRecord record;
+  const _ScanFindingCard({required this.record});
+
+  @override
+  Widget build(BuildContext context) {
+    final style = VerdictStyle.of(record.verdict);
+    final headline = (record.safetyHeadline?.isNotEmpty ?? false)
+        ? record.safetyHeadline!
+        : record.verdictLabel;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: style.color.withOpacity(0.07),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: style.color.withOpacity(0.3)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(style.icon, color: style.color, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'What the scan found',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: style.color,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  headline,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                ),
+                if (record.isOnRegister &&
+                    record.verdict != ScanVerdict.registered) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    record.regNo != null
+                        ? 'Still on the TMDA register · ${record.regNo}'
+                        : 'Still on the TMDA register',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.success,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

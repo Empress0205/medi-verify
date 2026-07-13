@@ -26,15 +26,21 @@ class GradientHeader extends StatelessWidget {
 }
 
 // ─── Stats Card ───────────────────────────────────────────────────────────────
+/// Home "Protection Stats".
+///
+/// [registered] counts only scans that are on the register AND in date — an
+/// expired pack is not a win, so it is counted under [needsAttention] instead.
+/// Counting it as "Registered" was the same false reassurance the history tile
+/// used to give.
 class StatsCard extends StatelessWidget {
   final int scans;
   final int registered;
-  final int notFound;
+  final int needsAttention;
   const StatsCard({
     super.key,
     required this.scans,
     required this.registered,
-    required this.notFound,
+    required this.needsAttention,
   });
 
   @override
@@ -58,13 +64,28 @@ class StatsCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _StatItem(value: scans, label: 'Scans', color: AppTheme.primary),
+              Expanded(
+                child: _StatItem(
+                    value: scans, label: 'Scans', color: AppTheme.primary),
+              ),
               _Divider(),
-              _StatItem(value: registered, label: 'Registered', color: AppTheme.primary),
+              Expanded(
+                child: _StatItem(
+                    value: registered,
+                    label: 'Registered',
+                    color: AppTheme.success),
+              ),
               _Divider(),
-              _StatItem(value: notFound, label: 'Not found', color: AppTheme.warning),
+              Expanded(
+                child: _StatItem(
+                  value: needsAttention,
+                  label: 'Needs attention',
+                  color: needsAttention > 0
+                      ? AppTheme.warning
+                      : AppTheme.textLight,
+                ),
+              ),
             ],
           ),
         ],
@@ -105,9 +126,12 @@ class _StatItem extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           label,
+          textAlign: TextAlign.center,
+          maxLines: 2,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: AppTheme.textSecondary,
                 fontSize: 13,
+                height: 1.2,
               ),
         ),
       ],
@@ -189,44 +213,51 @@ class QuickActionCard extends StatelessWidget {
   }
 }
 
-// ─── Status Badge ─────────────────────────────────────────────────────────────
-class StatusBadge extends StatelessWidget {
-  final VerificationStatus status;
+// ─── Verdict Badge ────────────────────────────────────────────────────────────
+/// Colour + icon for a [ScanVerdict]. Shared by the badge, the history tile
+/// and the home stats so a scan can never look green on one surface and red on
+/// another. Only [ScanVerdict.registered] is allowed to be green.
+class VerdictStyle {
+  final Color color;
+  final IconData icon;
+  const VerdictStyle(this.color, this.icon);
+
+  static VerdictStyle of(ScanVerdict v) {
+    switch (v) {
+      case ScanVerdict.expired:
+        return const VerdictStyle(AppTheme.danger, Icons.dangerous_rounded);
+      case ScanVerdict.lapsed:
+        return const VerdictStyle(AppTheme.warning, Icons.gpp_maybe_rounded);
+      case ScanVerdict.checkExpiry:
+        return const VerdictStyle(
+            AppTheme.warning, Icons.event_busy_rounded);
+      case ScanVerdict.expiringSoon:
+        return const VerdictStyle(AppTheme.warning, Icons.schedule_rounded);
+      case ScanVerdict.registered:
+        return const VerdictStyle(AppTheme.success, Icons.verified_rounded);
+      case ScanVerdict.notFound:
+        return const VerdictStyle(AppTheme.warning, Icons.search_off_rounded);
+      case ScanVerdict.unknown:
+        return const VerdictStyle(AppTheme.textSecondary, Icons.help_rounded);
+      case ScanVerdict.notMedicine:
+        return const VerdictStyle(AppTheme.info, Icons.image_search_rounded);
+    }
+  }
+}
+
+/// The badge shown on history tiles and the result screen's details card.
+///
+/// It renders the [ScanVerdict], NOT the raw register status — an expired pack
+/// that happens to be registered must never carry a reassuring green
+/// "Registered" badge.
+class VerdictBadge extends StatelessWidget {
+  final ScanRecord record;
   final bool large;
-  const StatusBadge({super.key, required this.status, this.large = false});
+  const VerdictBadge({super.key, required this.record, this.large = false});
 
   @override
   Widget build(BuildContext context) {
-    Color bg, text;
-    IconData icon;
-    String label;
-
-    switch (status) {
-      case VerificationStatus.registered:
-        bg = AppTheme.success.withOpacity(0.12);
-        text = AppTheme.success;
-        icon = Icons.verified_rounded;
-        label = 'Registered';
-        break;
-      case VerificationStatus.notFound:
-        bg = AppTheme.warning.withOpacity(0.12);
-        text = AppTheme.warning;
-        icon = Icons.search_off_rounded;
-        label = 'Not on register';
-        break;
-      case VerificationStatus.unknown:
-        bg = AppTheme.warning.withOpacity(0.12);
-        text = AppTheme.warning;
-        icon = Icons.help_rounded;
-        label = 'Unknown';
-        break;
-      case VerificationStatus.notMedicine:
-        bg = AppTheme.warning.withOpacity(0.12);
-        text = AppTheme.warning;
-        icon = Icons.help_rounded;
-        label = 'Unrecognised image, please retake or scan a real medicine';
-        break;
-    }
+    final style = VerdictStyle.of(record.verdict);
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -234,20 +265,20 @@ class StatusBadge extends StatelessWidget {
         vertical: large ? 8 : 4,
       ),
       decoration: BoxDecoration(
-        color: bg,
+        color: style.color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(50),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: text, size: large ? 18 : 14),
+          Icon(style.icon, color: style.color, size: large ? 18 : 14),
           const SizedBox(width: 5),
           Text(
-            label,
+            record.verdictLabel,
             style: TextStyle(
-              color: text,
+              color: style.color,
               fontWeight: FontWeight.w600,
-              fontSize: large ? 15 : 13,
+              fontSize: large ? 15 : 12.5,
             ),
           ),
         ],
@@ -265,6 +296,11 @@ class ScanHistoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Everything on this tile follows the VERDICT, not the register status.
+    // A registered-but-expired pack has to read as expired here too — showing
+    // it as green "Registered" in history would undo the safety layer.
+    final style = VerdictStyle.of(record.verdict);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -281,12 +317,12 @@ class ScanHistoryTile extends StatelessWidget {
               width: 46,
               height: 46,
               decoration: BoxDecoration(
-                color: _statusColor(record.status).withOpacity(0.1),
+                color: style.color.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
                 Icons.medication_rounded,
-                color: _statusColor(record.status),
+                color: style.color,
                 size: 24,
               ),
             ),
@@ -312,34 +348,47 @@ class ScanHistoryTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    _timeAgo(record.scannedAt),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontSize: 12,
-                          color: AppTheme.textLight,
+                  Row(
+                    children: [
+                      Text(
+                        _timeAgo(record.scannedAt),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontSize: 12,
+                              color: AppTheme.textLight,
+                            ),
+                      ),
+                      // Keep the registration fact visible when the badge is
+                      // owned by a safety concern, so the tile isn't misread
+                      // as "this medicine is not registered".
+                      if (record.isOnRegister &&
+                          record.verdict != ScanVerdict.registered) ...[
+                        const SizedBox(width: 6),
+                        const Icon(Icons.verified_rounded,
+                            size: 12, color: AppTheme.success),
+                        const SizedBox(width: 3),
+                        Text(
+                          'On register',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(
+                                fontSize: 12,
+                                color: AppTheme.success,
+                                fontWeight: FontWeight.w600,
+                              ),
                         ),
+                      ],
+                    ],
                   ),
                 ],
               ),
             ),
-            StatusBadge(status: record.status),
+            const SizedBox(width: 8),
+            VerdictBadge(record: record),
           ],
         ),
       ),
     );
-  }
-
-  Color _statusColor(VerificationStatus s) {
-    switch (s) {
-      case VerificationStatus.registered:
-        return AppTheme.success;
-      case VerificationStatus.notFound:
-        return AppTheme.warning;
-      case VerificationStatus.unknown:
-        return AppTheme.textSecondary;
-      case VerificationStatus.notMedicine:
-        return AppTheme.info;
-    }
   }
 
   String _timeAgo(DateTime dt) {
