@@ -74,6 +74,7 @@ class VerificationService {
     }
 
     final info = response.medicineInfo;
+    final safety = response.safety;
 
     return ScanRecord(
       id: _uuid.v4(),
@@ -90,6 +91,13 @@ class VerificationService {
       registrationStatus: info?.registrationStatus,
       physicalDescription: info?.physicalDescription,
       activeIngredient: info?.activeIngredient,
+      // Safety layer — the backend owns the matrix; the app just renders it.
+      severity: safety?.severity ?? 'unknown',
+      safetyHeadline: safety?.headline,
+      safetyDetail: safety?.detail,
+      expiryStatus: safety?.expiryStatus ?? 'unknown',
+      registrationExpiry: safety?.registrationExpiry ?? info?.registrationExpiry,
+      reportable: safety?.reportable ?? (status == VerificationStatus.notFound),
     );
   }
 

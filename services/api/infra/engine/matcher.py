@@ -23,6 +23,7 @@ from domain.enums import ScanStatus
 from domain.schemas import ExtractedFields, VerifyResponse, MedicineInfo
 from infra.orm import Medicine
 from infra.normalize import normalize_cert, normalize_name
+from infra.engine.safety import assess
 
 # Below this name-similarity we will NOT claim "registered".
 REGISTERED_MIN_NAME = 0.82
@@ -34,6 +35,7 @@ async def match(fields: ExtractedFields, db: AsyncSession) -> VerifyResponse:
     if not fields.is_medicine:
         return VerifyResponse(
             success=True, status=ScanStatus.not_medicine, confidence_score=0.0,
+            safety=assess(ScanStatus.not_medicine, None, None),
             message="This image does not look like medicine packaging. "
                     "Please photograph the medicine's box, strip or label.",
         )
@@ -41,8 +43,11 @@ async def match(fields: ExtractedFields, db: AsyncSession) -> VerifyResponse:
     name = fields.medicine_name
     reg = fields.reg_no
     if not name and not reg:
+        # We couldn't identify the product — but if we DID read an expiry date,
+        # that is still a fact worth surfacing (see safety.assess).
         return VerifyResponse(
             success=True, status=ScanStatus.unknown, confidence_score=0.0,
+            safety=assess(ScanStatus.unknown, fields.expiry_date, None),
             message="We couldn't read a medicine name or registration number. "
                     "Try again with a clearer, well-lit photo of the label.",
         )
@@ -121,12 +126,10 @@ async def _best_name_match(name: str, manufacturer: Optional[str], db: AsyncSess
 
 def _registered(m: Medicine, fields: ExtractedFields, scan_time: str,
                 confidence: float, method: str) -> VerifyResponse:
-    lapsed = m.cert_expiry_date is not None and m.cert_expiry_date < datetime.utcnow()
-    if lapsed:
-        msg = (f"Matches a TMDA record ({method}), but the product's registration "
-               f"appears to have expired on {m.cert_expiry_date:%d %b %Y}. Check with the pharmacy.")
-    else:
-        msg = f"This product matches a registered TMDA record ({method})."
+    # The register match is the FACT. Expiry/registration-validity are a separate
+    # layer that never changes the verdict — only how loudly it is presented.
+    safety = assess(ScanStatus.registered, fields.expiry_date, m.cert_expiry_date)
+    msg = f"This product matches a registered TMDA record ({method})."
 
     info = MedicineInfo(
         name=m.brand_name or fields.medicine_name or "Unknown",
@@ -145,7 +148,8 @@ def _registered(m: Medicine, fields: ExtractedFields, scan_time: str,
     )
     return VerifyResponse(
         success=True, status=ScanStatus.registered,
-        confidence_score=round(confidence, 3), medicine_info=info, message=msg,
+        confidence_score=round(confidence, 3), medicine_info=info,
+        safety=safety, message=msg,
     )
 
 
@@ -163,6 +167,7 @@ def _not_found(fields: ExtractedFields, scan_time: str) -> VerifyResponse:
     return VerifyResponse(
         success=True, status=ScanStatus.not_found, confidence_score=0.2,
         medicine_info=info,
+        safety=assess(ScanStatus.not_found, fields.expiry_date, None),
         message="We could not find this product on the TMDA register. This does not "
                 "prove it is fake — it may be newly registered or the label may have been "
                 "misread. Be cautious, and please report it so TMDA can review.",

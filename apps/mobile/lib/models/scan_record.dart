@@ -22,6 +22,15 @@ class ScanRecord {
   final String? physicalDescription;
   final String? activeIngredient;
 
+  // ── Safety layer (expiry / registration validity) ──
+  // Independent of [status]: a registered medicine can still be an expired box.
+  final String severity;             // ok | caution | warning | danger | unknown
+  final String? safetyHeadline;
+  final String? safetyDetail;
+  final String expiryStatus;         // valid | expiring_soon | expired | unknown
+  final String? registrationExpiry;
+  final bool reportable;
+
   ScanRecord({
     required this.id,
     this.serverScanId,
@@ -38,7 +47,16 @@ class ScanRecord {
     this.registrationStatus,
     this.physicalDescription,
     this.activeIngredient,
+    this.severity = 'unknown',
+    this.safetyHeadline,
+    this.safetyDetail,
+    this.expiryStatus = 'unknown',
+    this.registrationExpiry,
+    this.reportable = false,
   });
+
+  bool get isExpired => expiryStatus == 'expired';
+  bool get isExpiryUnknown => expiryStatus == 'unknown';
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -56,6 +74,12 @@ class ScanRecord {
         'registrationStatus': registrationStatus,
         'physicalDescription': physicalDescription,
         'activeIngredient': activeIngredient,
+        'severity': severity,
+        'safetyHeadline': safetyHeadline,
+        'safetyDetail': safetyDetail,
+        'expiryStatus': expiryStatus,
+        'registrationExpiry': registrationExpiry,
+        'reportable': reportable,
       };
 
   factory ScanRecord.fromJson(Map<String, dynamic> json) => ScanRecord(
@@ -74,6 +98,12 @@ class ScanRecord {
         registrationStatus: json['registrationStatus'],
         physicalDescription: json['physicalDescription'],
         activeIngredient: json['activeIngredient'],
+        severity: json['severity'] ?? 'unknown',
+        safetyHeadline: json['safetyHeadline'],
+        safetyDetail: json['safetyDetail'],
+        expiryStatus: json['expiryStatus'] ?? 'unknown',
+        registrationExpiry: json['registrationExpiry'],
+        reportable: json['reportable'] ?? false,
       );
 
   String get statusLabel {

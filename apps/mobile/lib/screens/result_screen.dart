@@ -5,6 +5,99 @@ import '../../services/app_state.dart';
 import '../../models/scan_record.dart';
 import '../../widgets/shared_widgets.dart';
 
+/// How a result is presented, chosen by the backend's `severity`.
+///
+/// `danger` (red) is reserved for facts we actually read off the pack — an
+/// expiry date that has passed. A `not_found` is *uncertainty*, not proof of a
+/// fake, so it warns in amber and never screams. That asymmetry is deliberate.
+class _SeverityStyle {
+  final Gradient gradient;
+  final IconData icon;
+  final Color accent;
+  final String fallbackTitle;
+  final String fallbackMessage;
+
+  const _SeverityStyle({
+    required this.gradient,
+    required this.icon,
+    required this.accent,
+    required this.fallbackTitle,
+    required this.fallbackMessage,
+  });
+
+  static _SeverityStyle of(String severity, {bool isNotFound = false}) {
+    switch (severity) {
+      case 'ok':
+        return const _SeverityStyle(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF27AE60), Color(0xFF1E8449)],
+          ),
+          icon: Icons.verified_rounded,
+          accent: AppTheme.success,
+          fallbackTitle: 'Registered with TMDA',
+          fallbackMessage:
+              'This product matches a record on the TMDA register.',
+        );
+      case 'caution':
+        return const _SeverityStyle(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF0B429), Color(0xFFDE911D)],
+          ),
+          icon: Icons.schedule_rounded,
+          accent: AppTheme.warning,
+          fallbackTitle: 'Registered — expiring soon',
+          fallbackMessage: 'This pack is close to its expiry date.',
+        );
+      case 'warning':
+        return _SeverityStyle(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF5A623), Color(0xFFD4891C)],
+          ),
+          icon: isNotFound
+              ? Icons.search_off_rounded
+              : Icons.warning_amber_rounded,
+          accent: AppTheme.warning,
+          fallbackTitle:
+              isNotFound ? 'Not on the TMDA register' : 'Check the pack',
+          fallbackMessage:
+              'Be cautious: do not use it until confirmed, and please report it.',
+        );
+      case 'danger':
+        return const _SeverityStyle(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFE04F4F), Color(0xFFB02323)],
+          ),
+          icon: Icons.dangerous_rounded,
+          accent: Color(0xFFB02323),
+          fallbackTitle: 'Do not use this medicine',
+          fallbackMessage:
+              'This pack has expired. Do not take it — return it to the pharmacy.',
+        );
+      default: // unknown
+        return const _SeverityStyle(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF90A4AE), Color(0xFF607D8B)],
+          ),
+          icon: Icons.help_rounded,
+          accent: AppTheme.textSecondary,
+          fallbackTitle: 'Check inconclusive',
+          fallbackMessage:
+              'We could not complete the register check. Try again with a clearer photo, or consult a pharmacist.',
+        );
+    }
+  }
+}
+
 class ResultScreen extends StatelessWidget {
   const ResultScreen({super.key});
 
@@ -18,42 +111,23 @@ class ResultScreen extends StatelessWidget {
     final isRegistered = record.status == VerificationStatus.registered;
     final isNotFound = record.status == VerificationStatus.notFound;
 
-    Gradient headerGradient;
-    IconData statusIcon;
-    String statusTitle;
-    String statusMessage;
+    // The header is driven by SEVERITY, not by the register verdict alone.
+    // A registered medicine in an expired box must not show a reassuring green
+    // banner — the registration is still a fact, but the expiry is what the
+    // user has to act on, so it owns the headline. (The backend owns this
+    // matrix; the app just renders whatever severity it is handed.)
+    final style = _SeverityStyle.of(record.severity, isNotFound: isNotFound);
 
-    if (isRegistered) {
-      headerGradient = const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFF27AE60), Color(0xFF1E8449)],
-      );
-      statusIcon = Icons.verified_rounded;
-      statusTitle = 'Registered with TMDA';
-      statusMessage =
-          'This product matches a record on the TMDA register. Registration confirms the product is approved — still check the packaging condition and expiry date before use.';
-    } else if (isNotFound) {
-      headerGradient = const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFFF5A623), Color(0xFFD4891C)],
-      );
-      statusIcon = Icons.search_off_rounded;
-      statusTitle = 'Not Found on Register';
-      statusMessage =
-          'We could not find this product on the TMDA register. This does not prove it is fake — it may be newly registered or the label may have been misread. Be cautious: do not use it until confirmed, and please report it.';
-    } else {
-      headerGradient = const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFF90A4AE), Color(0xFF607D8B)],
-      );
-      statusIcon = Icons.help_rounded;
-      statusTitle = 'Check Inconclusive';
-      statusMessage =
-          'We could not complete the register check for this medicine. Try scanning again with a clearer photo, or consult a pharmacist.';
-    }
+    final statusTitle = (record.safetyHeadline?.isNotEmpty ?? false)
+        ? record.safetyHeadline!
+        : style.fallbackTitle;
+    final statusMessage = record.safetyDetail ?? style.fallbackMessage;
+    final headerGradient = style.gradient;
+    final statusIcon = style.icon;
+
+    // When the headline is about expiry, the registration result would
+    // otherwise vanish — keep it visible as a secondary fact.
+    final showRegisteredChip = isRegistered && record.severity != 'ok';
 
     return Scaffold(
       backgroundColor: AppTheme.surface,
@@ -133,6 +207,39 @@ class ResultScreen extends StatelessWidget {
                                   fontSize: 13,
                                 ),
                           ),
+                          // The registration fact — kept visible even when a
+                          // safety warning owns the headline.
+                          if (showRegisteredChip) ...[
+                            const SizedBox(height: 16),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 9),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(50),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.verified_rounded,
+                                      color: AppTheme.success, size: 18),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      record.regNo != null
+                                          ? 'Registered with TMDA · ${record.regNo}'
+                                          : 'Registered with TMDA',
+                                      style: const TextStyle(
+                                        color: AppTheme.success,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 16),
                           // Confidence score
                           Container(
@@ -199,12 +306,14 @@ class ResultScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     children: [
-                      if (isNotFound)
+                      // Reportable covers not-found AND expired/lapsed results —
+                      // selling an expired medicine is itself reportable.
+                      if (record.reportable)
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.warning,
+                              backgroundColor: style.accent,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                             ),
                             onPressed: () =>

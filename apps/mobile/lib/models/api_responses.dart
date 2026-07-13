@@ -1,9 +1,56 @@
+/// The safety layer that sits on top of the registration verdict.
+///
+/// Registration says whether the PRODUCT is approved; it says nothing about
+/// whether the BOX in your hand is still in date. `severity` decides how the
+/// result is presented — `danger` is only ever used for facts we actually read
+/// off the pack (an expiry date), never for absence of evidence.
+class SafetyInfo {
+  final String expiryStatus;          // valid | expiring_soon | expired | unknown
+  final String? expiryDate;           // ISO (month-only dates → end of month)
+  final int? daysToExpiry;
+  final String registrationValidity;  // current | lapsed | unknown
+  final String? registrationExpiry;
+  final String severity;              // ok | caution | warning | danger | unknown
+  final String headline;
+  final String? detail;
+  final bool reportable;
+
+  SafetyInfo({
+    required this.expiryStatus,
+    this.expiryDate,
+    this.daysToExpiry,
+    required this.registrationValidity,
+    this.registrationExpiry,
+    required this.severity,
+    required this.headline,
+    this.detail,
+    this.reportable = false,
+  });
+
+  factory SafetyInfo.fromJson(Map<String, dynamic> json) => SafetyInfo(
+        expiryStatus: json['expiry_status'] ?? 'unknown',
+        expiryDate: json['expiry_date'],
+        daysToExpiry: json['days_to_expiry'],
+        registrationValidity: json['registration_validity'] ?? 'unknown',
+        registrationExpiry: json['registration_expiry'],
+        severity: json['severity'] ?? 'unknown',
+        headline: json['headline'] ?? '',
+        detail: json['detail'],
+        reportable: json['reportable'] ?? false,
+      );
+
+  bool get isExpired => expiryStatus == 'expired';
+  bool get isExpiryUnknown => expiryStatus == 'unknown';
+  bool get isRegistrationLapsed => registrationValidity == 'lapsed';
+}
+
 /// Represents the raw response from POST /verify
 class VerifyApiResponse {
   final bool success;
   final String status; // "registered" | "not_found" | "not_medicine" | "unknown"
   final double confidenceScore;
   final MedicineInfo? medicineInfo;
+  final SafetyInfo? safety;
   final String? message;
   final String? errorMessage;
   final String? scanId;
@@ -13,6 +60,7 @@ class VerifyApiResponse {
     required this.status,
     required this.confidenceScore,
     this.medicineInfo,
+    this.safety,
     this.message,
     this.errorMessage,
     this.scanId,
@@ -29,6 +77,7 @@ class VerifyApiResponse {
           : json['medicineInfo'] != null
               ? MedicineInfo.fromJson(json['medicineInfo'])
               : null,
+      safety: json['safety'] != null ? SafetyInfo.fromJson(json['safety']) : null,
       message: json['message'] ?? json['error'] ?? json['error_message'],
       errorMessage: (json['success'] == false)
           ? (json['message'] ?? json['error'] ?? json['error_message'])

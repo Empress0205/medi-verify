@@ -582,6 +582,26 @@
           }
         }
       }
+    },
+    "/register/status": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Register Status",
+        "description": "How many products are in the local register and how the last sync went.\nPublic so the dashboard can show a \"register last synced\" indicator.",
+        "operationId": "register_status_register_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -712,6 +732,17 @@
           "dismissed"
         ],
         "title": "DashboardStats"
+      },
+      "ExpiryStatus": {
+        "type": "string",
+        "enum": [
+          "valid",
+          "expiring_soon",
+          "expired",
+          "unknown"
+        ],
+        "title": "ExpiryStatus",
+        "description": "Validity of the PACK in the user's hand, read off the printed label.\n\nIndependent of registration: a properly registered product can still be an\nexpired box on the shelf. `unknown` means we could not read a date \u2014 it must\nNEVER be treated as \"not expired\"."
       },
       "HTTPValidationError": {
         "properties": {
@@ -933,6 +964,16 @@
         ],
         "title": "RegionPoint"
       },
+      "RegistrationValidity": {
+        "type": "string",
+        "enum": [
+          "current",
+          "lapsed",
+          "unknown"
+        ],
+        "title": "RegistrationValidity",
+        "description": "Validity of the PRODUCT'S TMDA registration certificate itself.\n\nDistinct from pack expiry \u2014 this is a regulatory status, not a safety date."
+      },
       "ReportCreateRequest": {
         "properties": {
           "scan_id": {
@@ -1143,6 +1184,81 @@
         ],
         "title": "ReportStatus"
       },
+      "SafetyInfo": {
+        "properties": {
+          "expiry_status": {
+            "$ref": "#/components/schemas/ExpiryStatus"
+          },
+          "expiry_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expiry Date"
+          },
+          "days_to_expiry": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days To Expiry"
+          },
+          "registration_validity": {
+            "$ref": "#/components/schemas/RegistrationValidity"
+          },
+          "registration_expiry": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registration Expiry"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/Severity"
+          },
+          "headline": {
+            "type": "string",
+            "title": "Headline"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "reportable": {
+            "type": "boolean",
+            "title": "Reportable",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "expiry_status",
+          "registration_validity",
+          "severity",
+          "headline"
+        ],
+        "title": "SafetyInfo",
+        "description": "The safety layer that sits on top of the registration verdict.\n\nRegistration answers \"is this product approved?\" \u2014 it says nothing about\nwhether the box in your hand is still in date. Both matter, so they are\nreported separately and `severity` decides how the result is presented."
+      },
       "ScanResponse": {
         "properties": {
           "id": {
@@ -1288,6 +1404,18 @@
         ],
         "title": "ScanTrendPoint"
       },
+      "Severity": {
+        "type": "string",
+        "enum": [
+          "ok",
+          "caution",
+          "warning",
+          "danger",
+          "unknown"
+        ],
+        "title": "Severity",
+        "description": "How the result should be presented. Deliberately calibrated:\n\n`danger` is reserved for FACTS we are sure of (an expiry date we actually\nread off the pack), never for absence of evidence \u2014 a not_found is\nuncertainty, so it warns but does not scream."
+      },
       "StatusUpdateRequest": {
         "properties": {
           "status": {
@@ -1405,6 +1533,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/MedicineInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "safety": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SafetyInfo"
               },
               {
                 "type": "null"

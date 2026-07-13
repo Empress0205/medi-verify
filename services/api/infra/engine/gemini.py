@@ -28,6 +28,21 @@ food, a random object, an unreadable blur).
 If it IS medicine packaging, read these fields exactly as printed. Do not guess or
 translate. Use null for any field that is not visible.
 
+TWO FIELDS MATTER MOST — search the whole image carefully for them, including
+small print, side panels, the bottom of the box and the foil of a blister strip:
+
+1. "reg_no" — the TMDA/TFDA registration (certificate) number. In Tanzania it
+   usually looks like "TAN 22 HM 0470", "TAN 08,124 R02A ZEN" or "TZ11H175".
+   Look for a code beginning with TAN or TZ, often printed near the manufacturer
+   details or the words "Reg. No", "Registration No" or "TMDA". Copy it exactly,
+   including spaces. Return null ONLY if it genuinely does not appear.
+
+2. "expiry_date" — the expiry, often printed as "EXP", "Exp. Date", "Use before"
+   or "Best before", commonly near the batch number and the manufacture date, and
+   frequently embossed or ink-jetted rather than printed. Copy it exactly as shown
+   (e.g. "AUG.2027", "08/2027", "31-08-2027"). Do NOT confuse it with the
+   manufacture date ("MFG", "MFD") — the expiry is the LATER of the two dates.
+
 Return ONLY this JSON object:
 {
   "is_medicine": true,

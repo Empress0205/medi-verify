@@ -3,7 +3,13 @@ from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, Field
 
-from domain.enums import ScanStatus, ReportStatus
+from domain.enums import (
+    ExpiryStatus,
+    RegistrationValidity,
+    ReportStatus,
+    ScanStatus,
+    Severity,
+)
 
 
 # ── Verify endpoint (Flutter → backend) ───────────────────────────────────────
@@ -39,11 +45,35 @@ class ExtractedFields(BaseModel):
     manufacturer:  Optional[str] = None
 
 
+class SafetyInfo(BaseModel):
+    """The safety layer that sits on top of the registration verdict.
+
+    Registration answers "is this product approved?" — it says nothing about
+    whether the box in your hand is still in date. Both matter, so they are
+    reported separately and `severity` decides how the result is presented.
+    """
+    # The pack in the user's hand (from the printed label)
+    expiry_status:   ExpiryStatus
+    expiry_date:     Optional[str] = None    # ISO; month-only dates resolve to end-of-month
+    days_to_expiry:  Optional[int] = None
+
+    # The product's TMDA registration certificate (from the register)
+    registration_validity: RegistrationValidity
+    registration_expiry:   Optional[str] = None
+
+    # How to present it. `danger` is only ever used for facts we actually read.
+    severity:   Severity
+    headline:   str
+    detail:     Optional[str] = None
+    reportable: bool = False
+
+
 class VerifyResponse(BaseModel):
     success:          bool
     status:           ScanStatus                       # canonical enum, no free-form strings
     confidence_score: float = Field(ge=0.0, le=1.0)    # CANONICAL: 0.0–1.0, format to % at UI
     medicine_info:    Optional[MedicineInfo] = None
+    safety:           Optional[SafetyInfo] = None      # expiry / registration-validity layer
     message:          Optional[str] = None
     error_message:    Optional[str] = None
     scan_id:          Optional[str] = None             # id of the persisted Scan row

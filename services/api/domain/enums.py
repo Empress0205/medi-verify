@@ -23,6 +23,43 @@ class ScanStatus(str, enum.Enum):
     not_medicine = "not_medicine"    # image isn't medicine packaging
 
 
+class ExpiryStatus(str, enum.Enum):
+    """Validity of the PACK in the user's hand, read off the printed label.
+
+    Independent of registration: a properly registered product can still be an
+    expired box on the shelf. `unknown` means we could not read a date — it must
+    NEVER be treated as "not expired".
+    """
+    valid = "valid"
+    expiring_soon = "expiring_soon"
+    expired = "expired"
+    unknown = "unknown"
+
+
+class RegistrationValidity(str, enum.Enum):
+    """Validity of the PRODUCT'S TMDA registration certificate itself.
+
+    Distinct from pack expiry — this is a regulatory status, not a safety date.
+    """
+    current = "current"
+    lapsed = "lapsed"
+    unknown = "unknown"
+
+
+class Severity(str, enum.Enum):
+    """How the result should be presented. Deliberately calibrated:
+
+    `danger` is reserved for FACTS we are sure of (an expiry date we actually
+    read off the pack), never for absence of evidence — a not_found is
+    uncertainty, so it warns but does not scream.
+    """
+    ok = "ok"            # green  — registered, current, in date
+    caution = "caution"  # amber-lite — registered but expiring soon
+    warning = "warning"  # amber  — not on register / lapsed / expiry unreadable
+    danger = "danger"    # red    — expired pack: do not use
+    unknown = "unknown"  # grey   — check could not be completed
+
+
 class ReportStatus(str, enum.Enum):
     pending = "pending"
     under_review = "under_review"
