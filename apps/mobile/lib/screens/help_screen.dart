@@ -385,6 +385,43 @@ class HelpScreen extends StatelessWidget {
                   ),
                 ),
 
+                const SizedBox(height: 24),
+                _SectionHeader(
+                    icon: Icons.privacy_tip_rounded,
+                    label: 'Your Privacy'),
+                const SizedBox(height: 12),
+                // The consent sheet is shown once, before the first scan. It has
+                // to be readable again afterwards — a disclosure you can never
+                // re-open is not really a disclosure.
+                _Card(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'What happens to your data when you scan:',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 12),
+                      const _Bullet(
+                        text:
+                            'Your photo is sent to our server and read by Google Gemini, an AI service, to pull the medicine name and registration number off the pack.',
+                      ),
+                      const _Bullet(
+                        text:
+                            'Your scan history is stored on this phone only. Clear it any time from the History screen — swipe a scan away, or use the bin icon to clear all.',
+                      ),
+                      const _Bullet(
+                        text:
+                            'If you submit a report, the pharmacy details you type are shared with TMDA reviewers. Nothing else is.',
+                      ),
+                      const _Bullet(
+                        text:
+                            'We never ask for your name, phone number or GPS location.',
+                      ),
+                    ],
+                  ),
+                ),
+
                 if (Navigator.canPop(context)) ...[
                   const SizedBox(height: 24),
                   SizedBox(

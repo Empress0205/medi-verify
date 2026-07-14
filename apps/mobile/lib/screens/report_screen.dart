@@ -211,7 +211,9 @@ class _ReportScreenState extends State<ReportScreen> {
                         ],
                       ),
                     ] else ...[
-                      // Fallback if somehow no scan record exists
+                      // Reached from the Report tab with nothing scanned. Saying
+                      // "scan a medicine first" and leaving them stranded is a
+                      // dead end — give them the way out.
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -220,16 +222,38 @@ class _ReportScreenState extends State<ReportScreen> {
                           border: Border.all(
                               color: AppTheme.warning.withOpacity(0.3)),
                         ),
-                        child: const Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.info_outline_rounded,
-                                color: AppTheme.warning, size: 20),
-                            SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                'No scan data found. Please scan a medicine first.',
-                                style: TextStyle(
-                                    fontSize: 14, color: AppTheme.textSecondary),
+                            const Row(
+                              children: [
+                                Icon(Icons.info_outline_rounded,
+                                    color: AppTheme.warning, size: 20),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'A report needs a scan behind it, so TMDA can see which medicine you mean.',
+                                    style: TextStyle(
+                                        fontSize: 14,
+                                        height: 1.4,
+                                        color: AppTheme.textSecondary),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () =>
+                                    Navigator.pushNamed(context, '/scan'),
+                                icon: const Icon(
+                                    Icons.qr_code_scanner_rounded, size: 19),
+                                label: const Text('Scan the medicine'),
+                                style: ElevatedButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 13),
+                                ),
                               ),
                             ),
                           ],

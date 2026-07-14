@@ -215,13 +215,35 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                     physics: const ClampingScrollPhysics(),
                     itemCount: filtered.length,
-                    itemBuilder: (_, i) => ScanHistoryTile(
-                      record: filtered[i],
-                      onTap: () {
-                        context.read<AppState>().setLastScan(filtered[i]);
-                        Navigator.pushNamed(context, '/result');
-                      },
-                    ),
+                    itemBuilder: (_, i) {
+                      final record = filtered[i];
+                      // Swipe away a single mis-scan — a blurry shot or someone
+                      // else's box — without wiping the whole history.
+                      return Dismissible(
+                        key: ValueKey(record.id),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.only(right: 22),
+                          alignment: Alignment.centerRight,
+                          decoration: BoxDecoration(
+                            color: AppTheme.danger,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(Icons.delete_rounded,
+                              color: Colors.white),
+                        ),
+                        onDismissed: (_) =>
+                            context.read<AppState>().removeScan(record.id),
+                        child: ScanHistoryTile(
+                          record: record,
+                          onTap: () {
+                            context.read<AppState>().setLastScan(record);
+                            Navigator.pushNamed(context, '/result');
+                          },
+                        ),
+                      );
+                    },
                   ),
           ),
         ],

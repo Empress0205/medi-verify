@@ -104,6 +104,15 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Remove one scan. Clearing everything is too blunt when the user just wants
+  /// a mis-scan (a blurry shot, someone else's box) out of their history.
+  Future<void> removeScan(String id) async {
+    _history.removeWhere((r) => r.id == id);
+    if (_lastScan?.id == id) _lastScan = null;
+    notifyListeners();
+    await _persistHistory();
+  }
+
   Future<void> clearHistory() async {
     _history.clear();
     _lastScan = null;

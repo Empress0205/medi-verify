@@ -59,6 +59,7 @@ class VerificationService {
 
     if (!result.isSuccess || result.data == null) {
       _lastError = result.errorMessage ?? 'Verification failed.';
+      _lastFailureType = result.failureType ?? VerificationFailureType.unknown;
       return null;
     }
 
@@ -142,6 +143,21 @@ class VerificationService {
 
   // ─── Last error storage ────────────────────────────────────────────────────
   static String? _lastError;
+  static VerificationFailureType? _lastFailureType;
+
   static String? get lastError => _lastError;
-  static void clearError() => _lastError = null;
+
+  /// Why the last call failed. The UI needs this to tell "you have no network"
+  /// (retry the SAME photos once you're back) apart from "the server rejected
+  /// the image" (retake it) — those two deserve different offers.
+  static VerificationFailureType? get lastFailureType => _lastFailureType;
+
+  static bool get lastFailureWasNetwork =>
+      _lastFailureType == VerificationFailureType.networkError ||
+      _lastFailureType == VerificationFailureType.timeout;
+
+  static void clearError() {
+    _lastError = null;
+    _lastFailureType = null;
+  }
 }

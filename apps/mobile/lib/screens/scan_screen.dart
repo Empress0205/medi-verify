@@ -121,7 +121,11 @@ class _ScanScreenState extends State<ScanScreen>
     try {
       _cameraController = CameraController(
         cams[0],
-        ResolutionPreset.high,
+        // 1080p, not the 720p default. The expiry date and the TAN registration
+        // number are printed small — often on blister foil — and at 720p they
+        // are frequently unreadable, which is precisely what we are here to
+        // read. The other capture paths already allow up to 1920px.
+        ResolutionPreset.veryHigh,
         enableAudio: false,
       );
       await _cameraController!.initialize();
@@ -294,12 +298,21 @@ class _ScanScreenState extends State<ScanScreen>
     if (!mounted) return;
 
     _photos.add(imageFile);
+    _capturedImage = imageFile;
+    await _submitPhotos();
+  }
+
+  /// Sends whatever is in [_photos]. Separate from [_sendToBackend] so a failed
+  /// attempt can be RETRIED with the same photos — losing a good photo of a
+  /// pack to a dropped connection and making the user shoot it again is the
+  /// fastest way to make them give up on the scan.
+  Future<void> _submitPhotos() async {
+    if (_photos.isEmpty) return;
 
     setState(() {
-      _capturedImage = imageFile;
       _mode = _ScanMode.analyzing;
       _statusMessage = _photos.length > 1
-          ? 'Checking both photos against the TMDA register…'
+          ? 'Checking ${_photos.length} photos against the TMDA register…'
           : 'Checking the TMDA register…';
     });
 
@@ -343,11 +356,112 @@ class _ScanScreenState extends State<ScanScreen>
       return;
     }
 
-    // ❌ Network / server failure
+    // ❌ Network / server failure. Keep the photos — see _showFailureSheet.
     final error = VerificationService.lastError ?? 'Verification failed.';
+    final wasNetwork = VerificationService.lastFailureWasNetwork;
     VerificationService.clearError();
-    _showError(error);
-    _reset();
+
+    setState(() {
+      _mode = _ScanMode.idle;
+      _statusMessage = 'Choose how to scan your medicine';
+    });
+    _showFailureSheet(error, wasNetwork: wasNetwork);
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  //  Failure sheet — retry WITHOUT re-photographing the pack
+  // ────────────────────────────────────────────────────────────────────────────
+  void _showFailureSheet(String error, {required bool wasNetwork}) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetCtx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.divider,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+            const SizedBox(height: 22),
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppTheme.warning.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                wasNetwork ? Icons.wifi_off_rounded : Icons.cloud_off_rounded,
+                color: AppTheme.warning,
+                size: 36,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              wasNetwork ? 'No connection' : 'Could not complete the check',
+              style: Theme.of(context).textTheme.headlineMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              wasNetwork
+                  ? 'The check needs the internet to reach the TMDA register. '
+                      'Your photo is safe — reconnect and try again without '
+                      'photographing the pack a second time.'
+                  : error,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.textSecondary,
+                    height: 1.5,
+                  ),
+            ),
+            const SizedBox(height: 22),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(sheetCtx);
+                  _submitPhotos(); // same photos, no recapture
+                },
+                icon: const Icon(Icons.refresh_rounded),
+                label: Text(
+                  _photos.length > 1
+                      ? 'Try again with the same ${_photos.length} photos'
+                      : 'Try again with the same photo',
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(sheetCtx);
+                _reset();
+              },
+              child: const Text(
+                'Start over',
+                style: TextStyle(color: AppTheme.textSecondary),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _finish(ScanRecord record) {
