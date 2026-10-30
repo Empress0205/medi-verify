@@ -41,7 +41,7 @@ mediguard/
   data/
     tmda_medicines.csv   TMDA registry (was medicine_database.CSV)
   docs/
-  legacy/                superseded code, kept for reference (see below)
+  legacy/                superseded backend, kept for reference (see below)
 ```
 
 ## What moved (source -> destination)
@@ -65,16 +65,11 @@ mediguard/
 | `.../backend1/database.py` (CSV loader) | `services/api/infra/engine/tmda_loader.py` |
 | `.../backend1/medicine_database.CSV` | `data/tmda_medicines.csv` |
 
-## Quarantined in `legacy/` (nothing deleted)
+## Quarantined in `legacy/`
 
 - `legacy/backend1/` — old flat verify app: `main.py`, `run.py`, `utils.py`,
   `config.py` (dead regex approach), `test.py` (stray Groq check), `requirements.txt`.
-  **`main.py` still holds the real OCR->LLM->match orchestration** to port into
-  `infra/engine/inprocess.py`.
-- `legacy/misc/orphan_reports.py` — the old in-memory reports app (superseded by
-  `api/reports.py`).
-- `legacy/misc/vscode_settings/` — committed `.vscode`.
-- `legacy/temp_images/` — committed OCR scratch images (`temp_*`).
+  Kept for reference by `infra/engine/inprocess.py`.
 
 ## Status: structure only
 
