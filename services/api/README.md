@@ -1,247 +1,137 @@
-# MediGuard Backend API
+# MediGuard API
 
-FastAPI backend that powers both the Flutter mobile app and the React admin dashboard.
-
----
+FastAPI backend that powers both the Flutter mobile app and the React admin dashboard. It reads medicine packaging photos with a vision model, matches them against the TMDA register, stores scans and reports, and serves dashboard analytics.
 
 ## Project structure
 
 ```
-mediguard_backend/
-├── app/
-│   ├── main.py                  ← FastAPI app, CORS, router registration
-│   ├── core/
-│   │   ├── config.py            ← All settings (reads from .env)
-│   │   ├── security.py          ← JWT creation/verification
-│   │   └── verification.py      ← Medicine image AI engine (mock + real hook)
-│   ├── db/
-│   │   └── database.py          ← Async SQLAlchemy engine + session
-│   ├── models/
-│   │   ├── orm.py               ← SQLAlchemy table definitions
-│   │   └── schemas.py           ← Pydantic request/response models
-│   └── routers/
-│       ├── auth.py              ← POST /auth/login, /auth/setup
-│       ├── verify.py            ← POST /verify  (Flutter scans)
-│       ├── reports.py           ← POST /reports (Flutter submit) + admin CRUD
-│       └── analytics.py         ← GET  /analytics (dashboard charts)
-├── requirements.txt
-├── .env.example
-└── README.md
+services/api/
+├── main.py              FastAPI app, CORS, lifespan (DB setup, TMDA sync), health routes
+├── config.py            Settings, read from environment variables / .env
+├── api/                 HTTP routers (no business logic)
+│   ├── auth.py            POST /auth/login, admin seeding
+│   ├── verify.py          POST /verify
+│   ├── reports.py         /reports
+│   ├── scans.py           /scans
+│   └── analytics.py       /analytics
+├── services/            Use cases (verification orchestration)
+├── domain/
+│   ├── enums.py           ScanStatus, ReportStatus, ExpiryStatus (single source of truth)
+│   └── schemas.py         Pydantic request/response models (the wire contract)
+├── infra/
+│   ├── db.py, orm.py      Async SQLAlchemy engine and tables
+│   ├── tmda_sync.py       Syncs the TMDA register from the public portal
+│   ├── expiry.py          Expiry-date parsing
+│   ├── normalize.py       Text normalisation for matching
+│   └── engine/            Pluggable verification engine
+│       ├── base.py          Engine interface
+│       ├── gemini.py        Google Gemini vision
+│       ├── mock.py          Deterministic fake (no API key needed)
+│       ├── matcher.py       Match extracted fields to register records
+│       └── safety.py        Expiry / registration-validity layer
+├── tests/               End-to-end smoke test and register evaluation harness
+├── Dockerfile
+└── requirements.txt
 ```
-
----
 
 ## Quick start
 
-### 1. Clone and install
-
 ```bash
-cd mediguard_backend
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
+cd services/api
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-```
-
-### 2. Configure environment
-
-```bash
 cp .env.example .env
-# Edit .env — at minimum change SECRET_KEY
+uvicorn main:app --reload
 ```
 
-### 3. Run the server
+- API: <http://localhost:8000>
+- Interactive docs: <http://localhost:8000/docs>
+- Health: `GET /health`, register sync status: `GET /register/status`
 
-```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
+With the default `ENGINE=mock`, everything runs without an API key. Set `ENGINE=gemini` and `GEMINI_API_KEY` to read real packaging.
 
-Server starts at `http://localhost:8000`  
-Interactive docs at `http://localhost:8000/docs`
+## Configuration
 
-### 4. Create your first admin account
+All settings live in [`config.py`](config.py) and can be overridden with environment variables or a `.env` file (see [`.env.example`](.env.example)).
 
-Call this once — then remove the `/auth/setup` route from `auth.py` in production:
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `DATABASE_URL` | SQLAlchemy URL (SQLite locally, Postgres in production) | `sqlite+aiosqlite:///./mediguard.db` |
+| `SECRET_KEY` | JWT signing secret | placeholder — **must be set in production** |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Dashboard admin account, re-synced on every start | `admin` / placeholder — **must be set in production** |
+| `CORS_ORIGINS` | Allowed origins (JSON list) | local dev servers |
+| `ENGINE` | `mock` or `gemini` | `mock` |
+| `GEMINI_API_KEY`, `GEMINI_MODEL` | Gemini credentials and model | — |
+| `REGISTER_SYNC_HOURS` | How often to refresh the TMDA register (0 disables) | `24` |
 
-```bash
-curl -X POST http://localhost:8000/auth/setup \
-  -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "your_strong_password"}'
-```
+## Authentication
 
-### 5. Log in and get your JWT
+Admin endpoints need a JWT. The admin account is created from `ADMIN_USERNAME` / `ADMIN_PASSWORD` on startup.
 
 ```bash
 curl -X POST http://localhost:8000/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "your_strong_password"}'
+  -d '{"username": "admin", "password": "<ADMIN_PASSWORD>"}'
 ```
 
-Copy the `access_token` from the response — paste it into the React dashboard login.
-
----
+Send the returned `access_token` as `Authorization: Bearer <token>`.
 
 ## API reference
 
-### Flutter endpoints (no auth required)
+### Public endpoints (used by the mobile app)
 
-| Method | Path        | Description                            |
-|--------|-------------|----------------------------------------|
-| POST   | `/verify`   | Send medicine image, get AI result     |
-| POST   | `/reports`  | Submit a suspicious medicine report    |
+| Method | Path | Description |
+| --- | --- | --- |
+| POST | `/verify` | Upload 1–3 photos of a pack (`image` or repeated `images` fields, `multipart/form-data`) and get a registration verdict |
+| POST | `/reports` | Submit a suspicious-medicine report |
 
-#### POST /verify
+`/verify` returns:
 
-Send as `multipart/form-data` with field name `image`.
-
-```
-Response:
+```json
 {
   "success": true,
-  "status": "verified",          // verified | counterfeit | invalid | unknown
-  "confidence_score": 91.2,
-  "medicine_info": {
-    "name": "Paracetamol 500mg",
-    "manufacturer": "Dawa Ltd",
-    "batch_number": "BN-2024-0312",
-    "expiry_date": "2026-03",
-    "scan_time": "2024-11-20T10:00:00Z",
-    "active_ingredient": "Paracetamol",
-    "dosage": "500mg",
-    "warnings": ["Store below 30°C"]
-  },
-  "message": "Medicine verified against database records."
+  "status": "registered",
+  "confidence_score": 0.97,
+  "medicine_info": { "...": "fields read from the pack and the matched TMDA record" },
+  "safety": { "...": "expiry and registration-validity flags" },
+  "capture": { "...": "hint when another photo would help" },
+  "message": "...",
+  "scan_id": "uuid"
 }
 ```
 
-#### POST /reports
+- `status` is one of `registered`, `not_found`, `unknown`, `not_medicine`. The API never returns "counterfeit"; that is a human decision made by confirming a report.
+- `confidence_score` is always 0.0–1.0. Convert it to a percentage only in the UI.
 
-```json
-{
-  "scan_id": "optional-uuid-from-scan",
-  "medicine_name": "Paracetamol 500mg",
-  "manufacturer": "Dawa Ltd",
-  "batch_number": "BN-2024-0312",
-  "expiry_date": "2026-03",
-  "confidence": 91.2,
-  "region": "Dar es Salaam",
-  "street": "Kariakoo",
-  "pharmacy": "Afya Pharmacy",
-  "category": "Packaging Issues",
-  "description": "Box looks faded, seal broken"
-}
-```
+### Admin endpoints (JWT required)
 
-### Admin endpoints (JWT required — pass as Bearer token)
+| Method | Path | Description |
+| --- | --- | --- |
+| GET | `/reports` | List reports (filters: `status`, `region`, `category`, `search`, `skip`, `limit`) |
+| GET | `/reports/{id}` | Report detail |
+| PATCH | `/reports/{id}/status` | Change status and add admin notes |
+| DELETE | `/reports/{id}` | Delete a report |
+| GET | `/scans` | List scans (filters: `status`, `search`, `skip`, `limit`) |
+| GET | `/scans/stats` | Scan totals by outcome and trend |
+| GET | `/analytics` | Dashboard chart data |
 
-| Method | Path                       | Description                  |
-|--------|----------------------------|------------------------------|
-| GET    | `/reports`                 | List reports (filterable)    |
-| GET    | `/reports/{id}`            | Single report detail         |
-| PATCH  | `/reports/{id}/status`     | Update status + admin notes  |
-| DELETE | `/reports/{id}`            | Delete report                |
-| GET    | `/analytics`               | All dashboard chart data     |
+Report status transitions:
 
-#### GET /reports — query params
-
-- `status` — `pending` | `under_review` | `confirmed` | `dismissed`
-- `region` — partial match, e.g. `Arusha`
-- `category` — exact match
-- `search` — searches medicine name, report code, pharmacy name
-- `skip` / `limit` — pagination
-
-#### PATCH /reports/{id}/status
-
-```json
-{
-  "status": "under_review",
-  "admin_notes": "Sent sample to lab for testing"
-}
-```
-
-Status transitions allowed:
 - `pending` → `under_review` or `dismissed`
 - `under_review` → `confirmed` or `dismissed`
-- `confirmed` / `dismissed` → no further transitions
+- `confirmed` and `dismissed` are final
 
----
+## Tests
 
-## Connecting Flutter
+With the server running:
 
-In your Flutter `api_service.dart`, point the base URL to this server:
-
-```dart
-// Development (emulator)
-const String baseUrl = 'http://10.0.2.2:8000';
-
-// Development (physical device on same WiFi)
-const String baseUrl = 'http://192.168.x.x:8000';
-
-// Production
-const String baseUrl = 'https://api.mediguard.tz';
+```bash
+python tests/smoke_e2e.py http://127.0.0.1:8000
 ```
 
-**Verify call:**
-```dart
-final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/verify'));
-request.files.add(await http.MultipartFile.fromPath('image', imageFile.path));
-final response = await request.send();
-```
+`python -m tests.eval_register` measures matching accuracy against the labelled photos in `data/eval/`.
 
-**Report submission call:**
-```dart
-await http.post(
-  Uri.parse('$baseUrl/reports'),
-  headers: {'Content-Type': 'application/json'},
-  body: jsonEncode({
-    'medicine_name': record.medicineName,
-    'manufacturer':  record.manufacturer,
-    'batch_number':  record.batchNumber,
-    'expiry_date':   record.expiryDate,
-    'confidence':    record.confidenceScore,
-    'region':        regionCtrl.text,
-    'street':        streetCtrl.text,
-    'pharmacy':      pharmacyCtrl.text,
-    'category':      selectedCategory,
-    'description':   descCtrl.text,
-  }),
-);
-```
+## Deployment
 
-## Connecting the React dashboard
-
-Replace the mock data fetch in `AdminDashboard.jsx` with:
-
-```js
-const API = 'http://localhost:8000';
-const token = localStorage.getItem('token'); // after login
-
-// Fetch reports
-const res = await fetch(`${API}/reports`, {
-  headers: { Authorization: `Bearer ${token}` }
-});
-const reports = await res.json();
-
-// Fetch analytics
-const analytics = await fetch(`${API}/analytics`, {
-  headers: { Authorization: `Bearer ${token}` }
-}).then(r => r.json());
-
-// Update status
-await fetch(`${API}/reports/${id}/status`, {
-  method: 'PATCH',
-  headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-  body: JSON.stringify({ status: 'under_review' })
-});
-```
-
----
-
-## Production checklist
-
-- [ ] Change `SECRET_KEY` in `.env` to a long random string
-- [ ] Switch `DATABASE_URL` to PostgreSQL
-- [ ] Set `DEBUG=false`
-- [ ] Replace `CORS_ORIGINS=["*"]` with exact domain list
-- [ ] Remove or protect the `/auth/setup` endpoint
-- [ ] Set `USE_REAL_AI=true` and configure your AI model endpoint
-- [ ] Deploy behind HTTPS (nginx + certbot, or Railway/Render)
+Deployed to Render with the Dockerfile in this folder; see [docs/DEPLOY.md](../../docs/DEPLOY.md).
